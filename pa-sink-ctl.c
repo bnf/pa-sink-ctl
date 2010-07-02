@@ -2,6 +2,7 @@
 #include <pulse/pulseaudio.h>
 #include <ncurses.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define VOLUME_MAX UINT16_MAX
 #define VOLUME_BAR_LEN 50
@@ -10,6 +11,7 @@ static void context_state_callback(pa_context*, void *);
 static void get_sink_input_info_callback(pa_context *, const pa_sink_input_info*, int, void *);
 static void print_sinks(void);
 static void print_volume(pa_volume_t volume);
+int cmp_sink_input_list(const void *a, const void *b);
 
 typedef struct _sink_input_info {
 	uint32_t sink;
@@ -138,10 +140,12 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 void print_sinks(void) {
 	printf("print sinks: %d\n", sink_input_counter);
 
+	qsort(sink_input_list, sink_input_counter, sizeof(sink_input_info*), cmp_sink_input_list);
+
 	for(int i = 0; i < sink_input_counter; ++i) {
-		printf(	"\t%s\t%d\t",
-			sink_input_list[i]->name,
-			sink_input_list[i]->vol);
+		printf(	"%d\t%s\t",
+			sink_input_list[i]->sink,
+			sink_input_list[i]->name);
 		print_volume(sink_input_list[i]->vol);
 	}
 }
@@ -155,4 +159,16 @@ void print_volume(pa_volume_t volume) {
 	for (int i = 0; i < VOLUME_BAR_LEN - vol; ++i)
 		printf(" ");
 	printf("]\n");
+}
+
+int cmp_sink_input_list(const void *a, const void *b) {
+	sink_input_info* sinka = (sink_input_info*) a;
+	sink_input_info* sinkb = (sink_input_info*) b;
+
+	if (sinka->sink < sinkb->sink)
+		return -1;
+	else if (sinka->sink > sinkb->sink)
+		return 1;
+	else
+		return 0;
 }
