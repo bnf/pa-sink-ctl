@@ -217,7 +217,7 @@ void print_volume(pa_volume_t volume, int y) {
 	mvwprintw(menu_win, y, x - 1 , "[");
 	for (int i = 0; i < vol; ++i)
 		mvwprintw(menu_win, y, x + i, "=");
-	for (int i = vol; i < VOLUME_BAR_LEN - vol; ++i)
+	for (int i = vol; i < VOLUME_BAR_LEN; ++i)
 		mvwprintw(menu_win, y, x + i, " ");
 	
 	mvwprintw(menu_win, y, x + VOLUME_BAR_LEN, "]");
