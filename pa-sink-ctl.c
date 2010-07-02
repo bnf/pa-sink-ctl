@@ -26,10 +26,19 @@ typedef struct _sink_input_info {
 	pa_volume_t vol;
 } sink_input_info;
 
-static sink_input_info** sink_input_list = 0;
+typedef struct _sink_info {
+	uint32_t sink;
+	char* name;
+	pa_volume_t vol;
+} sink_info;
+
+static sink_info** sink_list = NULL;
+int sink_counter;
+uint32_t sink_max;
+
+static sink_input_info** sink_input_list = NULL;
 int sink_input_counter;
 int sink_input_max;
-uint32_t sink_max;
 
 static pa_mainloop_api *mainloop_api = NULL;
 static pa_context *context = NULL;
@@ -44,9 +53,12 @@ int main(int argc, char** argv)
 {
 	sink_input_counter = 0;
 	sink_input_max = 1;
-	sink_max = 0;
+
+	sink_counter = 0;
+	sink_max = 1;
 
 	sink_input_list = (sink_input_info**) calloc(sink_input_max, sizeof(sink_input_info*));
+	sink_list = (sink_info**) calloc(sink_max, sizeof(sink_info*));
 
 	chooser = 0;
 
@@ -205,6 +217,9 @@ void print_volume(pa_volume_t volume, int y) {
 	mvwprintw(menu_win, y, x - 1 , "[");
 	for (int i = 0; i < vol; ++i)
 		mvwprintw(menu_win, y, x + i, "=");
+	for (int i = vol; i < VOLUME_BAR_LEN - vol; ++i)
+		mvwprintw(menu_win, y, x + i, " ");
+	
 	mvwprintw(menu_win, y, x + VOLUME_BAR_LEN, "]");
 }
 
@@ -242,7 +257,7 @@ void get_input(void)
 		case KEY_RIGHT:
 			break;
 
-		case 10:
+		case 32:
 			
 			if (sink_input_list[chooser]->sink < sink_max)
 				sink = sink_input_list[chooser]->sink + 1;
