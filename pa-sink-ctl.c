@@ -3,9 +3,13 @@
 #include <ncurses.h>
 #include <string.h>
 
+#define VOLUME_MAX UINT16_MAX
+#define VOLUME_BAR_LEN 50
+
 static void context_state_callback(pa_context*, void *);
 static void get_sink_input_info_callback(pa_context *, const pa_sink_input_info*, int, void *);
 static void print_sinks(void);
+static void print_volume(pa_volume_t volume);
 
 typedef struct _sink_input_info {
 	uint32_t sink;
@@ -83,7 +87,7 @@ static void context_state_callback(pa_context *c, void *userdata) {
 }
 
 static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, int is_last, void *userdata) {
-	char t[32], k[32], cv[PA_CVOLUME_SNPRINT_MAX];
+	char t[32], k[32]; //,cv[PA_CVOLUME_SNPRINT_MAX];
 
 	if (is_last < 0) {
 		printf("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
@@ -98,7 +102,7 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 	snprintf(t, sizeof(t), "%u", i->owner_module);
 	snprintf(k, sizeof(k), "%u", i->client);
 
-	printf( "Sink Input #%u"
+/*	printf( "Sink Input #%u"
 		"\tClient: %s"
 		"\tSink: %u"
 		"\tMute: %d"
@@ -112,6 +116,9 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 			pa_cvolume_snprint(cv, sizeof(cv), &i->volume),
 			pa_proplist_gets(i->proplist, "application.name"),
 			pa_proplist_gets(i->proplist, "application.process.id"));
+*/
+
+	const char *name = pa_proplist_gets(i->proplist, "application.name");
 
 	++sink_input_counter;
 
@@ -121,20 +128,31 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 	}
 
 	sink_input_list[sink_input_counter-1] = (sink_input_info*) calloc(1, sizeof(sink_input_info));
-	sink_input_list[sink_input_counter-1]->name = (char*) calloc(strlen(i->name) + 1, sizeof(char));
+	sink_input_list[sink_input_counter-1]->name = (char*) calloc(strlen(name) + 1, sizeof(char));
 
 	sink_input_list[sink_input_counter-1]->sink = i->sink;
-	strncpy(sink_input_list[sink_input_counter-1]->name, i->name, strlen(i->name));
+	strncpy(sink_input_list[sink_input_counter-1]->name, name, strlen(name));
 	sink_input_list[sink_input_counter-1]->vol = pa_cvolume_avg(&i->volume);
 }
 
-void print_sinks(void)
-{
+void print_sinks(void) {
 	printf("print sinks: %d\n", sink_input_counter);
 
 	for(int i = 0; i < sink_input_counter; ++i) {
-		printf(	"\t%s\t\n",
-			sink_input_list[i]->name);
-//			sink_input_list[i]->vol);
+		printf(	"\t%s\t%d\t",
+			sink_input_list[i]->name,
+			sink_input_list[i]->vol);
+		print_volume(sink_input_list[i]->vol);
 	}
+}
+
+void print_volume(pa_volume_t volume) {
+
+	unsigned int vol = (unsigned int) ( (((double)volume) / ((double)VOLUME_MAX)) * VOLUME_BAR_LEN );
+	printf("[");
+	for (int i = 0; i < vol; ++i)
+		printf("=");
+	for (int i = 0; i < VOLUME_BAR_LEN - vol; ++i)
+		printf(" ");
+	printf("]\n");
 }
