@@ -117,15 +117,15 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 
 	if (sink_input_counter >= sink_input_max) {
 		sink_input_max*=2;
-		sink_input_list = (sink_input_info**) realloc(sink_input_list, sizeof(sink_input_info) * sink_input_max);
+		sink_input_list = (sink_input_info**) realloc(sink_input_list, sizeof(sink_input_info*) * sink_input_max);
 	}
 
-	sink_input_list[sink_input_counter] = (sink_input_info*) calloc(1, sizeof(sink_input_info));
-	sink_input_list[sink_input_counter]->name = (char*) calloc(strlen(i->name) + 1, sizeof(char));
+	sink_input_list[sink_input_counter-1] = (sink_input_info*) calloc(1, sizeof(sink_input_info));
+	sink_input_list[sink_input_counter-1]->name = (char*) calloc(strlen(i->name) + 1, sizeof(char));
 
-	sink_input_list[sink_input_counter]->sink = i->sink;
-	strncpy(sink_input_list[sink_input_counter]->name, i->name, strlen(i->name));
-	sink_input_list[sink_input_counter]->vol = pa_cvolume_avg(&i->volume);
+	sink_input_list[sink_input_counter-1]->sink = i->sink;
+	strncpy(sink_input_list[sink_input_counter-1]->name, i->name, strlen(i->name));
+	sink_input_list[sink_input_counter-1]->vol = pa_cvolume_avg(&i->volume);
 }
 
 void print_sinks(void)
