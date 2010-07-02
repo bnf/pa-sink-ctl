@@ -5,6 +5,7 @@
 
 static void context_state_callback(pa_context*, void *);
 static void get_sink_input_info_callback(pa_context *, const pa_sink_input_info*, int, void *);
+static void print_sinks(void);
 
 typedef struct _sink_input_info {
 	uint32_t sink;
@@ -25,7 +26,7 @@ int main(int argc, char** argv)
 	sink_input_counter = 0;
 	sink_input_max = 1;
 
-	sink_input_list = (sink_input_list**) calloc(sink_input_max, sizeof(sink_input_info*));
+	sink_input_list = (sink_input_info**) calloc(sink_input_max, sizeof(sink_input_info*));
 
 	pa_mainloop *m = NULL;
 	int ret = 1;
@@ -90,7 +91,7 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 	}
 
 	if (is_last) {
-//		print_sinks(sink_list);
+		print_sinks();
 		return;
 	}
 
@@ -116,7 +117,7 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 
 	if (sink_input_counter >= sink_input_max) {
 		sink_input_max*=2;
-		sink_input_list = (sink_input_list**) realloc(sink_input_max, sizeof(sink_input_info) * sink_input_max);
+		sink_input_list = (sink_input_info**) realloc(sink_input_list, sizeof(sink_input_info) * sink_input_max);
 	}
 
 	sink_input_list[sink_input_counter] = (sink_input_info*) calloc(1, sizeof(sink_input_info));
@@ -125,4 +126,15 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 	sink_input_list[sink_input_counter]->sink = i->sink;
 	strncpy(sink_input_list[sink_input_counter]->name, i->name, strlen(i->name));
 	sink_input_list[sink_input_counter]->vol = pa_cvolume_avg(&i->volume);
+}
+
+void print_sinks(void)
+{
+	printf("print sinks: %d\n", sink_input_counter);
+
+	for(int i = 0; i < sink_input_counter; ++i) {
+		printf(	"\t%s\t\n",
+			sink_input_list[i]->name);
+//			sink_input_list[i]->vol);
+	}
 }
