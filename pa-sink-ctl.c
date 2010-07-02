@@ -11,6 +11,7 @@
 
 static void context_state_callback(pa_context*, void *);
 static void get_sink_input_info_callback(pa_context *, const pa_sink_input_info*, int, void *);
+static void change_callback(pa_context* c, int success, void* userdate);
 static void print_sinks(void);
 static void print_volume(pa_volume_t, int);
 int cmp_sink_input_list(const void *, const void *);
@@ -18,6 +19,7 @@ void get_input(void);
 void quit(void);
 
 typedef struct _sink_input_info {
+	uint32_t index;
 	uint32_t sink;
 	char *name;
 	char *pid;
@@ -27,6 +29,7 @@ typedef struct _sink_input_info {
 static sink_input_info** sink_input_list = 0;
 int sink_input_counter;
 int sink_input_max;
+uint32_t sink_max;
 
 static pa_mainloop_api *mainloop_api = NULL;
 static pa_context *context = NULL;
@@ -41,6 +44,7 @@ int main(int argc, char** argv)
 {
 	sink_input_counter = 0;
 	sink_input_max = 1;
+	sink_max = 0;
 
 	sink_input_list = (sink_input_info**) calloc(sink_input_max, sizeof(sink_input_info*));
 
@@ -148,6 +152,9 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 
 	const char *name = pa_proplist_gets(i->proplist, "application.name");
 
+	if (i->sink > sink_max)
+		sink_max = i->sink;
+
 	++sink_input_counter;
 
 	if (sink_input_counter >= sink_input_max) {
@@ -158,6 +165,7 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 	sink_input_list[sink_input_counter-1] = (sink_input_info*) calloc(1, sizeof(sink_input_info));
 	sink_input_list[sink_input_counter-1]->name = (char*) calloc(strlen(name) + 1, sizeof(char));
 
+	sink_input_list[sink_input_counter-1]->index = i->index;
 	sink_input_list[sink_input_counter-1]->sink = i->sink;
 	strncpy(sink_input_list[sink_input_counter-1]->name, name, strlen(name));
 	sink_input_list[sink_input_counter-1]->vol = pa_cvolume_avg(&i->volume);
@@ -172,7 +180,7 @@ void print_sinks(void) {
 
 //	printf("print sinks: %d\n", sink_input_counter);
 
-	qsort(sink_input_list, sink_input_counter, sizeof(sink_input_info*), cmp_sink_input_list);
+//	qsort(sink_input_list, sink_input_counter, sizeof(sink_input_info*), cmp_sink_input_list);
 
 	for(i = 0; i < sink_input_counter; ++i) {
 		if (i == chooser)
@@ -215,6 +223,7 @@ int cmp_sink_input_list(const void *a, const void *b) {
 void get_input(void)
 {
 	int c;
+	uint32_t sink;
 	c = wgetch(menu_win);
 	switch (c) {
 		case KEY_UP:
@@ -223,7 +232,7 @@ void get_input(void)
 			break;
 
 		case KEY_DOWN:
-			if (chooser < sink_input_counter)
+			if (chooser < sink_input_counter - 1)
 				++chooser;
 			break;
 
@@ -231,6 +240,23 @@ void get_input(void)
 			break;
 
 		case KEY_RIGHT:
+			break;
+
+		case 10:
+			
+			if (sink_input_list[chooser]->sink < sink_max)
+				sink = sink_input_list[chooser]->sink + 1;
+			else
+				sink = 0;
+
+			pa_operation_unref(
+				pa_context_move_sink_input_by_index(
+					context, 
+					sink_input_list[chooser]->index,
+					sink, 
+					change_callback, 
+					NULL));
+			return;
 			break;
 
 		default:
@@ -248,4 +274,9 @@ void quit(void)
 	refresh();
 	endwin();
 	exit(0);
+}
+
+static void change_callback(pa_context* c, int success, void* userdate) {
+	sink_input_counter = 0;
+	pa_operation_unref(pa_context_get_sink_input_info_list(context, get_sink_input_info_callback, NULL));
 }
