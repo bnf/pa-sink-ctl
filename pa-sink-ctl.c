@@ -1,35 +1,32 @@
 #include <stdio.h>
 #include <pulse/pulseaudio.h>
-
-//#include <config.h>
-#include <signal.h>
+#include <ncurses.h>
 #include <string.h>
-#include <errno.h>
-#include <unistd.h>
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <getopt.h>
-#include <locale.h>
-//#include <sndfile.h>
-//#include <pulse/i18n.h>
-#include <pulse/pulseaudio.h>
-
-//#include <pulsecore/macro.h>
-//#include <pulsecore/core-util.h>
-//#include <pulsecore/log.h>
-//#include <pulsecore/sndfile-util.h>
-
 
 static void context_state_callback(pa_context*, void *);
 static void get_sink_input_info_callback(pa_context *, const pa_sink_input_info*, int, void *);
+
+typedef struct _sink_input_info {
+	uint32_t sink;
+	char *name;
+	char *pid;
+	pa_volume_t vol;
+} sink_input_info;
+
+static sink_input_info** sink_input_list = 0;
+int sink_input_counter;
+int sink_input_max;
 
 static pa_mainloop_api *mainloop_api = NULL;
 static pa_context *context = NULL;
 
 int main(int argc, char** argv)
 {
+	sink_input_counter = 0;
+	sink_input_max = 1;
+
+	sink_input_list = (sink_input_list**) calloc(sink_input_max, sizeof(sink_input_info*));
+
 	pa_mainloop *m = NULL;
 	int ret = 1;
 
@@ -75,6 +72,7 @@ static void context_state_callback(pa_context *c, void *userdata) {
 
 		case PA_CONTEXT_READY:
 			printf("Menue\n");
+
 			pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, NULL));
 			break;
 		default:
@@ -84,29 +82,22 @@ static void context_state_callback(pa_context *c, void *userdata) {
 }
 
 static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, int is_last, void *userdata) {
-	char t[32], k[32], cv[PA_CVOLUME_SNPRINT_MAX];// cvdb[PA_SW_CVOLUME_SNPRINT_DB_MAX];
-//	char *pl;
+	char t[32], k[32], cv[PA_CVOLUME_SNPRINT_MAX];
 
 	if (is_last < 0) {
-		printf("Failed to get sink input information: %s", pa_strerror(pa_context_errno(c)));
+		printf("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
 		return;
 	}
 
 	if (is_last) {
-//		complete_action();
+//		print_sinks(sink_list);
 		return;
 	}
-
-//	pa_assert(i);
-
-//	if (nl)
-//		printf("\n");
-//	nl = TRUE;
 
 	snprintf(t, sizeof(t), "%u", i->owner_module);
 	snprintf(k, sizeof(k), "%u", i->client);
 
-	printf("Sink Input #%u"
+	printf( "Sink Input #%u"
 		"\tClient: %s"
 		"\tSink: %u"
 		"\tMute: %d"
@@ -121,5 +112,17 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 			pa_proplist_gets(i->proplist, "application.name"),
 			pa_proplist_gets(i->proplist, "application.process.id"));
 
-//	pa_xfree(pl);
+	++sink_input_counter;
+
+	if (sink_input_counter >= sink_input_max) {
+		sink_input_max*=2;
+		sink_input_list = (sink_input_list**) realloc(sink_input_max, sizeof(sink_input_info) * sink_input_max);
+	}
+
+	sink_input_list[sink_input_counter] = (sink_input_info*) calloc(1, sizeof(sink_input_info));
+	sink_input_list[sink_input_counter]->name = (char*) calloc(strlen(i->name) + 1, sizeof(char));
+
+	sink_input_list[sink_input_counter]->sink = i->sink;
+	strncpy(sink_input_list[sink_input_counter]->name, i->name, strlen(i->name));
+	sink_input_list[sink_input_counter]->vol = pa_cvolume_avg(&i->volume);
 }
