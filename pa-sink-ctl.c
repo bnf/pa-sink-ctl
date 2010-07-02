@@ -6,12 +6,16 @@
 
 #define VOLUME_MAX UINT16_MAX
 #define VOLUME_BAR_LEN 50
+#define WIDTH 80
+#define HEIGHT 10
 
 static void context_state_callback(pa_context*, void *);
 static void get_sink_input_info_callback(pa_context *, const pa_sink_input_info*, int, void *);
 static void print_sinks(void);
-static void print_volume(pa_volume_t volume);
-int cmp_sink_input_list(const void *a, const void *b);
+static void print_volume(pa_volume_t, int);
+int cmp_sink_input_list(const void *, const void *);
+void get_input(void);
+void quit(void);
 
 typedef struct _sink_input_info {
 	uint32_t sink;
@@ -27,12 +31,31 @@ int sink_input_max;
 static pa_mainloop_api *mainloop_api = NULL;
 static pa_context *context = NULL;
 
+// ncurses
+WINDOW *menu_win;
+int chooser;
+int startx;
+int starty;
+
 int main(int argc, char** argv)
 {
 	sink_input_counter = 0;
 	sink_input_max = 1;
 
 	sink_input_list = (sink_input_info**) calloc(sink_input_max, sizeof(sink_input_info*));
+
+	chooser = 0;
+
+	initscr();
+	clear();
+	noecho();
+	cbreak();	/* Line buffering disabled. pass on everything */
+	startx = (80 - WIDTH) / 2;
+	starty = (24 - HEIGHT) / 2;
+	menu_win = newwin(HEIGHT, WIDTH, starty, startx);
+	keypad(menu_win, TRUE);
+	mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
+	refresh();
 
 	pa_mainloop *m = NULL;
 	int ret = 1;
@@ -66,19 +89,19 @@ static void context_state_callback(pa_context *c, void *userdata) {
 
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_CONNECTING:
-			printf("connecting...\n");
+//			printf("connecting...\n");
 			break;
 
 		case PA_CONTEXT_AUTHORIZING:
-			printf("authorizing...\n");
+//			printf("authorizing...\n");
 			break;
 
 		case PA_CONTEXT_SETTING_NAME:
-			printf("setting name\n");
+//			printf("setting name\n");
 			break;
 
 		case PA_CONTEXT_READY:
-			printf("Menue\n");
+//			printf("Menue\n");
 
 			pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, NULL));
 			break;
@@ -98,8 +121,11 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 
 	if (is_last) {
 		print_sinks();
+		get_input();
 		return;
 	}
+
+	if (!(i->client != PA_INVALID_INDEX)) return;
 
 	snprintf(t, sizeof(t), "%u", i->owner_module);
 	snprintf(k, sizeof(k), "%u", i->client);
@@ -138,32 +164,45 @@ static void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info
 }
 
 void print_sinks(void) {
-	printf("print sinks: %d\n", sink_input_counter);
+	int x, y, i;
+	x = 2;
+	y = 2;
+	
+	box(menu_win, 0, 0);
+
+//	printf("print sinks: %d\n", sink_input_counter);
 
 	qsort(sink_input_list, sink_input_counter, sizeof(sink_input_info*), cmp_sink_input_list);
 
-	for(int i = 0; i < sink_input_counter; ++i) {
-		printf(	"%d\t%s\t",
+	for(i = 0; i < sink_input_counter; ++i) {
+		if (i == chooser)
+			wattron(menu_win, A_REVERSE);
+
+		mvwprintw(menu_win, y+i, x, "%d\t%s\t",
 			sink_input_list[i]->sink,
 			sink_input_list[i]->name);
-		print_volume(sink_input_list[i]->vol);
+
+		if (i == chooser)
+			wattroff(menu_win, A_REVERSE);
+
+		print_volume(sink_input_list[i]->vol, y+i);
 	}
 }
 
-void print_volume(pa_volume_t volume) {
+void print_volume(pa_volume_t volume, int y) {
+
+	int x = 20;
 
 	unsigned int vol = (unsigned int) ( (((double)volume) / ((double)VOLUME_MAX)) * VOLUME_BAR_LEN );
-	printf("[");
+	mvwprintw(menu_win, y, x - 1 , "[");
 	for (int i = 0; i < vol; ++i)
-		printf("=");
-	for (int i = 0; i < VOLUME_BAR_LEN - vol; ++i)
-		printf(" ");
-	printf("]\n");
+		mvwprintw(menu_win, y, x + i, "=");
+	mvwprintw(menu_win, y, x + VOLUME_BAR_LEN, "]");
 }
 
 int cmp_sink_input_list(const void *a, const void *b) {
-	sink_input_info* sinka = (sink_input_info*) a;
-	sink_input_info* sinkb = (sink_input_info*) b;
+	sink_input_info* sinka = *((sink_input_info**) a);
+	sink_input_info* sinkb = *((sink_input_info**) b);
 
 	if (sinka->sink < sinkb->sink)
 		return -1;
@@ -171,4 +210,42 @@ int cmp_sink_input_list(const void *a, const void *b) {
 		return 1;
 	else
 		return 0;
+}
+
+void get_input(void)
+{
+	int c;
+	c = wgetch(menu_win);
+	switch (c) {
+		case KEY_UP:
+			if (chooser > 0)
+				--chooser;
+			break;
+
+		case KEY_DOWN:
+			if (chooser < sink_input_counter)
+				++chooser;
+			break;
+
+		case KEY_LEFT:
+			break;
+
+		case KEY_RIGHT:
+			break;
+
+		default:
+			printf("key: %d\n", c);
+			quit();
+			break;
+	}
+	sink_input_counter = 0;
+	pa_operation_unref(pa_context_get_sink_input_info_list(context, get_sink_input_info_callback, NULL));
+}
+
+void quit(void)
+{
+	clrtoeol();
+	refresh();
+	endwin();
+	exit(0);
 }
