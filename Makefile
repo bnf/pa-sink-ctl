@@ -16,5 +16,8 @@ sink_input: sink_input.c sink_input.h
 sink: sink.c sink.h
 	$(CC) $(CFLAGS) -c sink.c -o sink.o
 
+clean:
+	rm *.o
+
 test:
 	$(CC) $(CFLAGS) nc-test.c -o nc-test
