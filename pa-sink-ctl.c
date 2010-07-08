@@ -18,10 +18,6 @@ sink_info** sink_list = NULL;
 int sink_counter;
 uint32_t sink_max;
 
-sink_input_info** sink_input_list = NULL;
-int sink_input_counter;
-int sink_input_max;
-
 pa_mainloop_api *mainloop_api = NULL;
 pa_context *context = NULL;
 
@@ -33,14 +29,9 @@ int starty;
 
 int main(int argc, char** argv)
 {
-	// pulseaudio
-	sink_input_counter = 0;
-	sink_input_max = 1;
-	sink_input_list = (sink_input_info**) calloc(sink_input_max, sizeof(sink_input_info*));
-
 	sink_counter = 0;
 	sink_max = 1;
-	sink_list = (sink_info**) calloc(sink_max, sizeof(sink_info*));
+	sink_list = sink_list_init(sink_max);
 
 	// ncurses
 	chooser = 0;
@@ -146,7 +137,7 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 
 	if (is_last) {
 		print_sinks();
-		get_input();
+		get_input(); 
 		return;
 	}
 
@@ -171,25 +162,22 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 			pa_proplist_gets(i->proplist, "application.process.id"));
 */
 
-	const char *name = pa_proplist_gets(i->proplist, "application.name");
+//	const char *name = pa_proplist_gets(i->proplist, "application.name");
 
-//	if (i->sink > sink_max)
-//		sink_max = i->sink;
+	int sink_num = i->sink;
+	int counter = sink_list[sink_num]->input_counter;
 
-	++sink_input_counter;
+	// check the length of the list
+	sink_check_list(sink_list[sink_num]);
+	// check the current element of the list
+	sink_input_check(&(sink_list[ sink_num ]->input_list[ counter ]));
+	sink_input_info* input = sink_list[sink_num]->input_list[counter];
 
-	if (sink_input_counter >= sink_input_max) {
-		sink_input_max*=2;
-		sink_input_list = (sink_input_info**) realloc(sink_input_list, sizeof(sink_input_info*) * sink_input_max);
-	}
+	input->name = strdup(pa_proplist_gets(i->proplist, "application.name"));
+	input->index = i->index;
+	input->vol = pa_cvolume_avg(&i->volume);
 
-	sink_input_list[sink_input_counter-1] = (sink_input_info*) calloc(1, sizeof(sink_input_info));
-	sink_input_list[sink_input_counter-1]->name = (char*) calloc(strlen(name) + 1, sizeof(char));
-
-	sink_input_list[sink_input_counter-1]->index = i->index;
-	sink_input_list[sink_input_counter-1]->sink = i->sink;
-	strncpy(sink_input_list[sink_input_counter-1]->name, name, strlen(name));
-	sink_input_list[sink_input_counter-1]->vol = pa_cvolume_avg(&i->volume);
+	++sink_list[sink_num]->input_counter;
 }
 
 void quit(void)

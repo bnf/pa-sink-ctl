@@ -24,4 +24,9 @@ typedef struct _sink_info {
 sink_info* sink_init(void);
 void sink_clear(sink_info*);
 
+void sink_check_list(sink_info*);
+
+sink_info** sink_list_init(int);
+void sink_list_clear(sink_info**, int*);
+
 #endif
