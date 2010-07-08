@@ -14,10 +14,10 @@ all: $(DEPENDFILE) $(BIN)
 .PHONY: all clean
 
 $(BIN): $(OBJS)
-	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $(OBJS)
+	$(CC) $(LDFLAGS) $(CFLAGS) $+ -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c $<
 
 $(DEPENDFILE): $(SRCS) $(HEADS)
 	$(CC) -MM $(SRCS) > $(DEPENDFILE)
