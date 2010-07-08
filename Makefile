@@ -17,7 +17,7 @@ sink: sink.c sink.h
 	$(CC) $(CFLAGS) -c sink.c -o sink.o
 
 clean:
-	rm *.o
+	rm *.o pa-sink-ctl
 
 test:
 	$(CC) $(CFLAGS) nc-test.c -o nc-test
