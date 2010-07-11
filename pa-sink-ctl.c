@@ -1,7 +1,8 @@
+#define _XOPEN_SOURCE 500
+#include <string.h>
 #include <stdio.h>
 #include <pulse/pulseaudio.h>
 #include <ncurses.h>
-#include <string.h>
 #include <stdlib.h>
 
 #include "sink_input.h"
@@ -15,7 +16,7 @@
 #define HEIGHT 10
 
 sink_info** sink_list = NULL;
-int sink_counter;
+uint32_t sink_counter;
 uint32_t sink_max;
 
 pa_mainloop_api *mainloop_api = NULL;
@@ -33,24 +34,11 @@ int main(int argc, char** argv)
 	sink_max = 1;
 	sink_list = sink_list_init(sink_max);
 
-	// ncurses
-	chooser = 0;
-
-	initscr();
-	clear();
-	noecho();
-	cbreak();	/* Line buffering disabled. pass on everything */
-	startx = (80 - WIDTH) / 2;
-	starty = (24 - HEIGHT) / 2;
-	menu_win = newwin(HEIGHT, WIDTH, starty, startx);
-	keypad(menu_win, TRUE);
-	mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
-	refresh();
-
+	interface_init();
 	pa_mainloop *m = NULL;
 	int ret = 1;
 
-	if(!(m = pa_mainloop_new())) {
+	if (!(m = pa_mainloop_new())) {
 		printf("error: pa_mainloop_new() failed.\n");
 		return -1;
 	}
@@ -61,9 +49,10 @@ int main(int argc, char** argv)
 		printf("error: pa_context_new() failed.\n");
 		return -1;
 	}
-
+	
+	// define callback for connection init
 	pa_context_set_state_callback(context, context_state_callback, NULL);
-	if (pa_context_connect(context, "tcp:127.0.0.1:4713", PA_CONTEXT_NOAUTOSPAWN, NULL)) {
+	if (pa_context_connect(context, "tcp:127.0.0.1:4712", PA_CONTEXT_NOAUTOSPAWN, NULL)) {
 		printf("error: pa_context_connect() failed.\n");
 	}
 
@@ -74,7 +63,9 @@ int main(int argc, char** argv)
 
 	return ret;
 }
-
+/*
+ * is called after connection
+ */
 void context_state_callback(pa_context *c, void *userdata) {
 
 	switch (pa_context_get_state(c)) {
@@ -101,6 +92,9 @@ void context_state_callback(pa_context *c, void *userdata) {
 	}
 }
 
+/*
+ * the begin of the callback loops
+ */
 void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, void *userdata) {
 
 	if (is_last < 0) {
@@ -112,21 +106,20 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 		pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, NULL));
 		return;
 	}
+
+	sink_list_check(sink_list, &sink_max, sink_counter);
+
+	sink_list[sink_counter] = (sink_info*) calloc(1, sizeof(sink_info));
+	sink_list[sink_counter]->index = i->index;
+	sink_list[sink_counter]->mute = i->mute;
 	
+	sink_list[sink_counter]->name = strdup(i->name);
 	++sink_counter;
-	if (sink_counter >= sink_max) {
-		sink_max *= 2;
-		sink_list = realloc(sink_list, sizeof(sink_info*) * sink_max);
-	}
-	
-	sink_list[sink_counter - 1] = (sink_info*) calloc(1, sizeof(sink_info));
-	sink_list[sink_counter - 1]->index = i->index;
-	sink_list[sink_counter - 1]->mute = i->mute;
-	
-	sink_list[sink_counter - 1]->name = (char*) calloc(strlen(i->name) + 1, sizeof(char));
-	strncpy(sink_list[sink_counter - 1]->name, i->name, strlen(i->name));
 }
 
+/*
+ * is called after sink-input
+ */
 void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, int is_last, void *userdata) {
 	char t[32], k[32]; //,cv[PA_CVOLUME_SNPRINT_MAX];
 
@@ -168,7 +161,7 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	int counter = sink_list[sink_num]->input_counter;
 
 	// check the length of the list
-	sink_check_list(sink_list[sink_num]);
+	sink_check_input_list(sink_list[sink_num]);
 	// check the current element of the list
 	sink_input_check(&(sink_list[ sink_num ]->input_list[ counter ]));
 	sink_input_info* input = sink_list[sink_num]->input_list[counter];
@@ -180,15 +173,19 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	++sink_list[sink_num]->input_counter;
 }
 
-void quit(void)
-{
-	clrtoeol();
-	refresh();
-	endwin();
+void quit(void) {
+	sink_list_clear(sink_list, &sink_max, &sink_counter);
+	interface_clear();
 	exit(0);
 }
 
+/*
+ * is called, after user input
+ */
 void change_callback(pa_context* c, int success, void* userdate) {
-	sink_input_counter = 0;
+
+	sink_list_reset(sink_list, &sink_counter);
+
+	// get information about sinks
 	pa_operation_unref(pa_context_get_sink_input_info_list(context, get_sink_input_info_callback, NULL));
 }

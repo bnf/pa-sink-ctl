@@ -11,6 +11,7 @@
 void print_sinks(void);
 void print_volume(pa_volume_t, int);
 void get_input(void);
+void interface_init(void);
 void interface_clear(void);
 
 #endif
