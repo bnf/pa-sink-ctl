@@ -1,0 +1,7 @@
+compile:
+./autogen.sh
+./configure
+make
+
+install:
+make install
