@@ -12,12 +12,12 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
 # Checks for libraries.
-AC_CHECK_LIB([ncurses], [newwin], [CURSES=-lncurses], [echo "Error: you need ncurses!"; exit 1])
+AC_CHECK_LIB([ncurses], [newwin], [CURSES_LIBS=-lncurses], [echo "Error: you need ncurses!"; exit 1])
 PKG_CHECK_MODULES(PULSE, [libpulse], [], [echo "Error: you need libpulse!"; exit 1])
 
-# compiler flags
-LDFLAGS="$CURSES $PULSE_LIBS"
-CFLAGS="-std=c99 -pedantic -Wall -Werror $PULSE_CFLAGS"
+AC_SUBST(CURSES_LIBS)
+AC_SUBST(PULSE_CFLAGS)
+AC_SUBST(PULSE_LIBS)
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdio.h stdlib.h string.h ncurses.h pulse/pulseaudio.h])
