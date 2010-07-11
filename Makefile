@@ -10,8 +10,11 @@ LDFLAGS=-lncurses -lpulse -lform
 
 DEPENDFILE=.depend
 
-all: $(DEPENDFILE) $(BIN)
 .PHONY: all clean
+.SILENT: all
+
+all: $(DEPENDFILE) 
+	$(MAKE) --no-print-directory $(BIN)
 
 $(BIN): $(OBJS)
 	$(CC) $(LDFLAGS) $(CFLAGS) $+ -o $@
