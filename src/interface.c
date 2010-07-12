@@ -86,6 +86,8 @@ void print_sink_list(void) {
 
 		print_volume(sink_input_list[i]->vol, y+i);
 	}*/
+//	clear();
+//	refresh();
 }
 
 void print_input_list(int sink_num) {
@@ -103,6 +105,8 @@ void print_input_list(int sink_num) {
 
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattroff(menu_win, A_REVERSE);
+
+		print_volume(sink_list[sink_num]->input_list[i]->vol, offset + i);
 	}
 		
 }
