@@ -158,8 +158,8 @@ void get_input(void)
 
 		case 32:
 			
-/*			if (sink_input_list[chooser]->sink < sink_max)
-				sink = sink_input_list[chooser]->sink + 1;
+/*			if (chooser_sink < sink_counter - 1)
+				sink = chooser_sink + 1;
 			else
 				sink = 0;
 

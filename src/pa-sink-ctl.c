@@ -119,7 +119,7 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
  * is called after sink-input
  */
 void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, int is_last, void *userdata) {
-	char t[32], k[32]; //,cv[PA_CVOLUME_SNPRINT_MAX];
+	char t[32], k[32];
 
 	if (is_last < 0) {
 		printf("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
@@ -180,9 +180,8 @@ void quit(void) {
  */
 void change_callback(pa_context* c, int success, void* userdate) {
 
-
 	// get information about sinks
-	pa_operation_unref(pa_context_get_sink_input_info_list(context, get_sink_input_info_callback, NULL));
+	collect_all_info();
 }
 
 void collect_all_info(void) {
