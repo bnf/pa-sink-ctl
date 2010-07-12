@@ -30,7 +30,7 @@ void interface_init(void)
 {
 	// ncurses
 	chooser_sink = 0;
-	chooser_input = 0;
+	chooser_input = -1;
 
 	initscr();
 	clear();
@@ -45,9 +45,10 @@ void interface_init(void)
 }
 
 void print_sink_list(void) {
-	int x, y, i;
-	x = 2;
-	y = 2;
+	int i = 0;
+	int x = 2;
+	int y = 2;
+	int offset = 0;
 	
 	box(menu_win, 0, 0);
 
@@ -57,17 +58,19 @@ void print_sink_list(void) {
 	
 	for (i = 0; i < sink_counter; ++i) {
 		
-		if (i == chooser_sink)
+		if (i == chooser_sink && chooser_input == -1)
 			wattron(menu_win, A_REVERSE);
 
-		mvwprintw(menu_win, y+i, x, "%d\t%s\t",
+		mvwprintw(menu_win, y+i+offset, x, "%d\t%s\t",
 			sink_list[i]->index,
 			sink_list[i]->name);
-
+		
+		if (i == chooser_sink && chooser_input == -1)
+			wattroff(menu_win, A_REVERSE);
+		
 		print_input_list(i);
 
-		if (i == chooser_sink)
-			wattroff(menu_win, A_REVERSE);
+		offset += sink_list[i]->input_counter;
 	}
 	y += i;
 /*	for (i = 0; i < sink_input_counter; ++i) {
@@ -91,8 +94,15 @@ void print_input_list(int sink_num) {
 		offset += sink_list[i]->input_counter;
 
 	for (int i = 0; i < sink_list[sink_num]->input_counter; ++i) {
+
+		if (chooser_sink == sink_num && chooser_input == i)
+			wattron(menu_win, A_REVERSE);
+
 		mvwprintw(menu_win, offset + i, 2 + 5, "\t%s",
 			sink_list[sink_num]->input_list[i]->name);
+
+		if (chooser_sink == sink_num && chooser_input == i)
+			wattroff(menu_win, A_REVERSE);
 	}
 		
 }
@@ -130,9 +140,9 @@ void get_input(void)
 		case KEY_DOWN:
 			if (chooser_input == sink_list[chooser_sink]->input_counter - 1 && chooser_sink < sink_counter - 1) {
 					++chooser_sink;
-					chooser_input = 0;
+					chooser_input = -1;
 			}
-			else if (chooser_input < sink_list[chooser_sink]->input_counter)
+			else if (chooser_input < sink_list[chooser_sink]->input_counter - 1)
 				++chooser_input;
 			break;
 
