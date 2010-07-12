@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 	
 	// define callback for connection init
 	pa_context_set_state_callback(context, context_state_callback, NULL);
-	if (pa_context_connect(context, "tcp:127.0.0.1:4712", PA_CONTEXT_NOAUTOSPAWN, NULL)) {
+	if (pa_context_connect(context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL)) {
 		printf("error: pa_context_connect() failed.\n");
 	}
 
