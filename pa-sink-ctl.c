@@ -184,8 +184,12 @@ void quit(void) {
  */
 void change_callback(pa_context* c, int success, void* userdate) {
 
-	sink_list_reset(sink_list, &sink_counter);
 
 	// get information about sinks
 	pa_operation_unref(pa_context_get_sink_input_info_list(context, get_sink_input_info_callback, NULL));
+}
+
+void collect_all_infomation(void) {
+	sink_list_reset(sink_list, &sink_counter);
+
 }
