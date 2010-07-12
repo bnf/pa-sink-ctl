@@ -83,7 +83,7 @@ void context_state_callback(pa_context *c, void *userdata) {
 
 		case PA_CONTEXT_READY:
 //			printf("Menue\n");
-			pa_operation_unref(pa_context_get_sink_info_list(c, get_sink_info_callback, NULL));
+			collect_all_info();
 //			pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, NULL));
 			break;
 		default:
@@ -98,7 +98,7 @@ void context_state_callback(pa_context *c, void *userdata) {
 void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, void *userdata) {
 
 	if (is_last < 0) {
-		printf("Failed to get sink information: %s", pa_strerror(pa_context_errno(c)));
+		printf("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
 		quit();
 	}
 
@@ -108,11 +108,9 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 	}
 
 	sink_list_check(sink_list, &sink_max, sink_counter);
-
-	sink_list[sink_counter] = (sink_info*) calloc(1, sizeof(sink_info));
+	sink_check(&(sink_list[sink_counter]));
 	sink_list[sink_counter]->index = i->index;
 	sink_list[sink_counter]->mute = i->mute;
-	
 	sink_list[sink_counter]->name = strdup(i->name);
 	++sink_counter;
 }
@@ -129,7 +127,7 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	}
 
 	if (is_last) {
-		print_sinks();
+		print_sink_list();
 		get_input(); 
 		return;
 	}
@@ -159,18 +157,16 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 
 	int sink_num = i->sink;
 	int counter = sink_list[sink_num]->input_counter;
-
 	// check the length of the list
 	sink_check_input_list(sink_list[sink_num]);
 	// check the current element of the list
 	sink_input_check(&(sink_list[ sink_num ]->input_list[ counter ]));
 	sink_input_info* input = sink_list[sink_num]->input_list[counter];
-
 	input->name = strdup(pa_proplist_gets(i->proplist, "application.name"));
 	input->index = i->index;
 	input->vol = pa_cvolume_avg(&i->volume);
 
-	++sink_list[sink_num]->input_counter;
+	++(sink_list[sink_num]->input_counter);
 }
 
 void quit(void) {
@@ -189,7 +185,7 @@ void change_callback(pa_context* c, int success, void* userdate) {
 	pa_operation_unref(pa_context_get_sink_input_info_list(context, get_sink_input_info_callback, NULL));
 }
 
-void collect_all_infomation(void) {
+void collect_all_info(void) {
 	sink_list_reset(sink_list, &sink_counter);
-
+	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));
 }

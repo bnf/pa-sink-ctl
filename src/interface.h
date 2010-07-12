@@ -8,7 +8,8 @@
 #define WIDTH 80
 #define HEIGHT 10
 
-void print_sinks(void);
+void print_sink_list(void);
+void print_input_list(int sink_num);
 void print_volume(pa_volume_t, int);
 void get_input(void);
 void interface_init(void);

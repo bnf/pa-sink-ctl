@@ -22,4 +22,6 @@ void get_sink_input_info_callback(pa_context *, const pa_sink_input_info*, int, 
 void change_callback(pa_context* c, int success, void* userdate);
 void quit(void);
 
+void collect_all_info(void);
+
 #endif

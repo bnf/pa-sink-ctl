@@ -13,7 +13,7 @@ typedef struct _sink_input_info {
 	pa_volume_t vol; // TOTO: exchange with the channel-list
 } sink_input_info;
 
-sink_input_info* sink_input_init();
+sink_input_info* sink_input_init(void);
 void sink_input_clear(sink_input_info*);
 
 sink_input_info** sink_input_list_init(int);

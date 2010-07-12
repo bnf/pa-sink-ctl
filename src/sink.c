@@ -40,16 +40,22 @@ void sink_clear(sink_info* sink) {
 
 void sink_check(sink_info** sink) {
 
+	if (sink == NULL)
+		printf("Error: sink = NULL\n");
+
 	if ((*sink) == NULL)
-		(*sink) = (sink_info*) calloc(1, sizeof(sink_input_info));
+		(*sink) = sink_init();
+//		(*sink) = (sink_info*) calloc(1, sizeof(sink_input_info));
 }
 /*
  * check the list length and resize the list, if current position = max
  */
 void sink_list_check(sink_info** sink_list, uint32_t* max, uint32_t counter) {
+
 	if (counter >= (*max)) {
 		(*max) *= 2;
 		sink_list = (sink_info**) realloc(sink_list, (*max) * sizeof(sink_info*));
+
 		for (int i = counter; i < (*max); ++i)
 			sink_list[i] = NULL;
 	}

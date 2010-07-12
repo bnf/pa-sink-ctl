@@ -6,7 +6,7 @@
 
 #include "sink_input.h"
 
-sink_input_info* sink_input_init() {
+sink_input_info* sink_input_init(void) {
 
 	sink_input_info* sink_input = (sink_input_info*) calloc(1, sizeof(sink_input_info));
 	sink_input->name = NULL;
@@ -32,7 +32,7 @@ sink_input_info**  sink_input_list_init(int max) {
 	sink_input_info** sink_input_list = (sink_input_info**) calloc(max, sizeof(sink_input_info*));
 
 	for (int i = 0; i < max; ++i)
-		sink_input_list = NULL;
+		sink_input_list[i] = NULL;
 	
 	return sink_input_list;
 }
@@ -58,9 +58,12 @@ void sink_input_list_clear(sink_input_info** sink_input_list, int *max) {
 }
 
 void sink_input_check(sink_input_info** sink_input) {
+	
+	if (sink_input == NULL)
+		printf("Error: NULL\n");
 
 	if ((*sink_input) == NULL)
-		(*sink_input) = (sink_input_info*) calloc(1, sizeof(sink_input_info));
+		(*sink_input) = sink_input_init();
 }
 
 int cmp_sink_input_list(const void *a, const void *b) {

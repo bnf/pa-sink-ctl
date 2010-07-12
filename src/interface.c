@@ -15,7 +15,8 @@
 
 // ncurses
 WINDOW *menu_win;
-int chooser;
+int chooser_sink;
+int chooser_input;
 int startx;
 int starty;
 
@@ -28,7 +29,8 @@ extern pa_context* context;
 void interface_init(void)
 {
 	// ncurses
-	chooser = 0;
+	chooser_sink = 0;
+	chooser_input = 0;
 
 	initscr();
 	clear();
@@ -42,7 +44,7 @@ void interface_init(void)
 	refresh();
 }
 
-void print_sinks(void) {
+void print_sink_list(void) {
 	int x, y, i;
 	x = 2;
 	y = 2;
@@ -54,9 +56,18 @@ void print_sinks(void) {
 //	qsort(sink_input_list, sink_input_counter, sizeof(sink_input_info*), cmp_sink_input_list);
 	
 	for (i = 0; i < sink_counter; ++i) {
+		
+		if (i == chooser_sink)
+			wattron(menu_win, A_REVERSE);
+
 		mvwprintw(menu_win, y+i, x, "%d\t%s\t",
 			sink_list[i]->index,
 			sink_list[i]->name);
+
+		print_input_list(i);
+
+		if (i == chooser_sink)
+			wattroff(menu_win, A_REVERSE);
 	}
 	y += i;
 /*	for (i = 0; i < sink_input_counter; ++i) {
@@ -72,6 +83,18 @@ void print_sinks(void) {
 
 		print_volume(sink_input_list[i]->vol, y+i);
 	}*/
+}
+
+void print_input_list(int sink_num) {
+	int offset = sink_num + 1 + 2;
+	for (int i = 0; i < sink_num; ++i)
+		offset += sink_list[i]->input_counter;
+
+	for (int i = 0; i < sink_list[sink_num]->input_counter; ++i) {
+		mvwprintw(menu_win, offset + i, 2 + 5, "\t%s",
+			sink_list[sink_num]->input_list[i]->name);
+	}
+		
 }
 
 void print_volume(pa_volume_t volume, int y) {
@@ -95,13 +118,22 @@ void get_input(void)
 	c = wgetch(menu_win);
 	switch (c) {
 		case KEY_UP:
-			if (chooser > 0)
-				--chooser;
+			if (chooser_input == -1 && chooser_sink > 0) {
+				--chooser_sink;
+				chooser_input = sink_list[chooser_sink]->input_counter - 1;
+			}
+
+			else if (chooser_input >= 0)
+				--chooser_input;
 			break;
 
 		case KEY_DOWN:
-//			if (chooser < sink_input_counter - 1)
-//				++chooser;
+			if (chooser_input == sink_list[chooser_sink]->input_counter - 1 && chooser_sink < sink_counter - 1) {
+					++chooser_sink;
+					chooser_input = 0;
+			}
+			else if (chooser_input < sink_list[chooser_sink]->input_counter)
+				++chooser_input;
 			break;
 
 		case KEY_LEFT:
@@ -132,8 +164,9 @@ void get_input(void)
 			quit();
 			break;
 	}
-
-	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));
+	
+	collect_all_info();
+//	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));
 //	sink_input_counter = 0;
 //	pa_operation_unref(pa_context_get_sink_input_info_list(context, get_sink_input_info_callback, NULL));
 }
