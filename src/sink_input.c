@@ -27,7 +27,7 @@ void sink_input_clear(sink_input_info* sink_input) {
 	sink_input = NULL;
 }
 
-sink_input_info**  sink_input_list_init(int max) {
+sink_input_info** sink_input_list_init(int max) {
 
 	sink_input_info** sink_input_list = (sink_input_info**) calloc(max, sizeof(sink_input_info*));
 
@@ -37,13 +37,13 @@ sink_input_info**  sink_input_list_init(int max) {
 	return sink_input_list;
 }
 
-void sink_input_list_enlarge(sink_input_info** sink_input_list, int* max, int counter) {
+void sink_input_list_enlarge(sink_input_info*** sink_input_list, int* max, int counter) {
 	
-	(*max) *= 2;
-	sink_input_list = (sink_input_info**) realloc(sink_input_list, (*max) * sizeof(sink_input_info*));
+	*max *= 2;
+	*sink_input_list = (sink_input_info**) realloc(*sink_input_list, (*max) * sizeof(sink_input_info*));
 
-	for (int i = counter; i < (*max); ++i)
-		sink_input_list[i] = NULL;
+	for (int i = counter; i < *max; ++i)
+		(*sink_input_list)[i] = NULL;
 }
 
 void sink_input_list_clear(sink_input_info** sink_input_list, int *max) {

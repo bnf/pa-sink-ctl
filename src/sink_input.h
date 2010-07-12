@@ -17,7 +17,7 @@ sink_input_info* sink_input_init(void);
 void sink_input_clear(sink_input_info*);
 
 sink_input_info** sink_input_list_init(int);
-void sink_input_list_enlarge(sink_input_info**, int*, int);
+void sink_input_list_enlarge(sink_input_info***, int*, int);
 void sink_input_list_clear(sink_input_info**, int*);
 void sink_input_check(sink_input_info**);
 int cmp_sink_input_list(const void *, const void *);

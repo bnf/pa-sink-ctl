@@ -107,7 +107,7 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 		return;
 	}
 
-	sink_list_check(sink_list, &sink_max, sink_counter);
+	sink_list_check(&sink_list, &sink_max, sink_counter);
 	sink_check(&(sink_list[sink_counter]));
 	sink_list[sink_counter]->index = i->index;
 	sink_list[sink_counter]->mute = i->mute;
