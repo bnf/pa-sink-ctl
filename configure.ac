@@ -2,9 +2,9 @@
 AC_INIT([pa-sink-ctl], [0.1], [web2p10@wemelug.de])
 AM_INIT_AUTOMAKE
 
-AC_CONFIG_SRCDIR([pa-sink-ctl.c])
+AC_CONFIG_SRCDIR([src/pa-sink-ctl.c])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile])
 
 # Checks for programs.
 AC_PROG_CC

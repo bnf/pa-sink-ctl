@@ -39,4 +39,4 @@ depcomp
 autom4te.cache/*
 
 # Dependency tree
-.deps/*
+src/.deps/*
