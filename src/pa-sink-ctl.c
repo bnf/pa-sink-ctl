@@ -111,6 +111,8 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 	sink_check(&(sink_list[sink_counter]));
 	sink_list[sink_counter]->index = i->index;
 	sink_list[sink_counter]->mute = i->mute;
+	sink_list[sink_counter]->vol = pa_cvolume_avg(&i->volume);
+	sink_list[sink_counter]->channels = i->volume.channels;
 	sink_list[sink_counter]->name = strdup(i->name);
 	++sink_counter;
 }

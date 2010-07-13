@@ -84,6 +84,7 @@ void print_sink_list(void) {
 		
 		if (i == chooser_sink && chooser_input == -1)
 			wattroff(menu_win, A_REVERSE);
+		print_volume(sink_list[i]->vol, y+i+offset);
 		
 		print_input_list(i);
 

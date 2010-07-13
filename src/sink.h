@@ -13,6 +13,7 @@ typedef struct _sink_info {
 	uint32_t index;
 	char* name;
 	int mute;
+	uint8_t channels;
 	pa_volume_t vol;
 	
 	// input list
