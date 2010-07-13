@@ -40,7 +40,7 @@ void interface_init(void)
 	starty = (24 - HEIGHT) / 2;
 	menu_win = newwin(HEIGHT, WIDTH, starty, startx);
 	keypad(menu_win, TRUE);
-	curs_set(0);
+	curs_set(0); /* hide cursor */
 	mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
 	refresh();
 }
@@ -63,7 +63,7 @@ void print_sink_list(void) {
 		if (i == chooser_sink && chooser_input == -1)
 			wattron(menu_win, A_REVERSE);
 
-		mvwprintw(menu_win, y+i+offset, x, "%d\t%s\t",
+		mvwprintw(menu_win, y+i+offset, x, "%d\t%-10s",
 			sink_list[i]->index,
 			sink_list[i]->name);
 		
@@ -102,7 +102,7 @@ void print_input_list(int sink_num) {
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattron(menu_win, A_REVERSE);
 
-		mvwprintw(menu_win, offset + i, 2 + 5, "\t%s",
+		mvwprintw(menu_win, offset + i, 2, "\t %-9s",
 			sink_list[sink_num]->input_list[i]->name);
 
 		if (chooser_sink == sink_num && chooser_input == i)
