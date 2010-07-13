@@ -49,7 +49,8 @@ void sink_input_list_enlarge(sink_input_info*** sink_input_list, int* max, int c
 void sink_input_list_clear(sink_input_info** sink_input_list, int *max) {
 	
 	for (int i = 0; i < (*max); ++i)
-		sink_input_clear(sink_input_list[i]);
+		if (sink_input_list[i] != NULL)
+			sink_input_clear(sink_input_list[i]);
 
 	(*max) = 0;
 
