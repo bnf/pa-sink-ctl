@@ -168,6 +168,7 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	input->index = i->index;
 	input->channels = i->volume.channels;
 	input->vol = pa_cvolume_avg(&i->volume);
+	input->mute = i->mute;
 
 	++(sink_list[sink_num]->input_counter);
 }

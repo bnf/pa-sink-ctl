@@ -84,7 +84,7 @@ void print_sink_list(void) {
 		
 		if (i == chooser_sink && chooser_input == -1)
 			wattroff(menu_win, A_REVERSE);
-		print_volume(sink_list[i]->vol, y+i+offset);
+		print_volume(sink_list[i]->vol, sink_list[i]->mute, y+i+offset);
 		
 		print_input_list(i);
 
@@ -124,18 +124,21 @@ void print_input_list(int sink_num) {
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattroff(menu_win, A_REVERSE);
 
-		print_volume(sink_list[sink_num]->input_list[i]->vol, offset + i);
+		print_volume(sink_list[sink_num]->input_list[i]->vol, 
+				sink_list[sink_num]->input_list[i]->mute, offset + i);
 	}
 		
 }
 
-void print_volume(pa_volume_t volume, int y) {
+void print_volume(pa_volume_t volume, int mute, int y) {
 
 	//int x = 20;
 	int x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
 		1 /* space */ + 13 /* input name*/ + 1 /* space */;
 
 	unsigned int vol = (unsigned int) ( (((double)volume) / ((double)VOLUME_MAX)) * VOLUME_BAR_LEN );
+	mvwprintw(menu_win, y, x - 1, "[%c]", mute ? 'M' : ' ');
+	x += 3;
 	mvwprintw(menu_win, y, x - 1 , "[");
 	for (int i = 0; i < vol; ++i)
 		mvwprintw(menu_win, y, x + i, "=");
@@ -150,7 +153,10 @@ void get_input(void)
 	int c;
 //	uint32_t sink;
 	c = wgetch(menu_win);
+
 	int volume_mult = 0;
+	int index;
+	int mute;
 
 	switch (c) {
 		case 'k':
@@ -182,10 +188,9 @@ void get_input(void)
 			if (volume_mult == 0)
 				volume_mult = 1;
 
-			int index;
 			pa_cvolume volume;
 			pa_volume_t tmp_vol;
-			pa_operation* (*volume_set) (pa_context  *c, uint32_t idx, const pa_cvolume *volume, pa_context_success_cb_t cb, void *userdata);
+			pa_operation* (*volume_set) (pa_context*,uint32_t,const pa_cvolume*,pa_context_success_cb_t,void*);
 
 			if (chooser_input >= 0) {
 				sink_input_info *input = sink_list[chooser_sink]->input_list[chooser_input];
@@ -216,8 +221,29 @@ void get_input(void)
 					change_callback,
 					NULL));
 			return;
-			break;
-
+		case 'm':
+		case 'M': {
+			pa_operation* (*mute_set) (pa_context*,uint32_t,int,pa_context_success_cb_t,void*);
+			if (chooser_input >= 0) {
+				sink_input_info *input = sink_list[chooser_sink]->input_list[chooser_input];
+				index = input->index;
+				mute = input->mute;
+				mute_set = pa_context_set_sink_input_mute;
+			} else if (chooser_input == -1) {
+				sink_info *sink = sink_list[chooser_sink];
+				index = sink->index;
+				mute = sink->mute;
+				mute_set = pa_context_set_sink_mute_by_index;
+			} else
+				break;
+			
+			pa_operation_unref(mute_set(context, 
+					index,
+					!mute,
+					change_callback,
+					NULL));
+			return;
+		}
 		case '\n':
 		case ' ':
 			if (chooser_input == -1)
