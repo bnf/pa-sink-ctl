@@ -80,7 +80,7 @@ void print_sink_list(void) {
 
 		mvwprintw(menu_win, y+i+offset, x, "%2d %-13s",
 			sink_list[i]->index,
-			sink_list[i]->device);
+			sink_list[i]->device != NULL ? sink_list[i]->device : sink_list[i]->name);
 		
 		if (i == chooser_sink && chooser_input == -1)
 			wattroff(menu_win, A_REVERSE);
