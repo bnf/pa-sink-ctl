@@ -40,6 +40,7 @@ void interface_init(void)
 	starty = (24 - HEIGHT) / 2;
 	menu_win = newwin(HEIGHT, WIDTH, starty, startx);
 	keypad(menu_win, TRUE);
+	curs_set(0);
 	mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
 	refresh();
 }
