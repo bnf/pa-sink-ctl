@@ -50,6 +50,7 @@ void print_sink_list(void) {
 	int y = 2;
 	int offset = 0;
 	
+	werase(menu_win);
 	box(menu_win, 0, 0);
 
 //	printf("print sinks: %d\n", sink_input_counter);
