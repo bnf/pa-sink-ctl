@@ -24,7 +24,7 @@ void sink_input_clear(sink_input_info* sink_input) {
 		free(sink_input->pid);
 
 	free(sink_input);
-	sink_input = NULL;
+	// sink_input = NULL;
 }
 
 sink_input_info** sink_input_list_init(int max) {
@@ -55,7 +55,7 @@ void sink_input_list_clear(sink_input_info** sink_input_list, int *max) {
 	(*max) = 0;
 
 	free(sink_input_list);
-	sink_input_list = NULL;
+	// sink_input_list = NULL;
 }
 
 void sink_input_check(sink_input_info** sink_input) {

@@ -35,7 +35,7 @@ void sink_clear(sink_info* sink) {
 	sink_input_list_clear(sink->input_list, &sink->input_max);
 
 	free(sink);
-	sink = NULL;
+	//sink = NULL;
 }
 
 void sink_check(sink_info** sink) {
@@ -97,5 +97,10 @@ void sink_list_clear(sink_info** sink_list, uint32_t* max, uint32_t* counter) {
 	(*counter) = 0;
 	
 	free(sink_list);
-	sink_list = NULL;
+	// sink_list = NULL; 
+
+	/* TODO: for all *_clear:
+	 * setting local parameter to NULL doesnt do want is wanted
+	 * pointer to sink_list would be needed here...
+	 */
 }
