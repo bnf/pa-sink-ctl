@@ -49,8 +49,8 @@ void sink_check(sink_info** sink) {
 
 	if ((*sink) == NULL)
 		(*sink) = sink_init();
-//		(*sink) = (sink_info*) calloc(1, sizeof(sink_input_info));
 }
+
 /*
  * check the list length and resize the list, if current position = max
  */

@@ -84,8 +84,8 @@ void context_state_callback(pa_context *c, void *userdata) {
 		case PA_CONTEXT_READY:
 //			printf("Menue\n");
 			collect_all_info();
-//			pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, NULL));
 			break;
+
 		default:
 			printf("unknown state\n");
 			break;
@@ -141,24 +141,6 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 
 	snprintf(t, sizeof(t), "%u", i->owner_module);
 	snprintf(k, sizeof(k), "%u", i->client);
-
-/*	printf( "Sink Input #%u"
-		"\tClient: %s"
-		"\tSink: %u"
-		"\tMute: %d"
-		"\tVolume: %s"
-		"\tname: %s"
-		"\tpid: %s\n",
-			i->index,
-			i->client != PA_INVALID_INDEX ? k : "n/a",
-			i->sink,
-			i->mute,
-			pa_cvolume_snprint(cv, sizeof(cv), &i->volume),
-			pa_proplist_gets(i->proplist, "application.name"),
-			pa_proplist_gets(i->proplist, "application.process.id"));
-*/
-
-//	const char *name = pa_proplist_gets(i->proplist, "application.name");
 
 	int sink_num = i->sink;
 	int counter = sink_list[sink_num]->input_counter;

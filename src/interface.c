@@ -30,7 +30,6 @@ extern pa_context* context;
 
 void interface_init(void)
 {
-	// ncurses
 	chooser_sink = 0;
 	chooser_input = -1;
 
@@ -56,7 +55,6 @@ void print_sink_list(void) {
 	werase(menu_win);
 	box(menu_win, 0, 0);
 
-
 	/* derive chooser_input from selected_index (this is set when input is moved) */
 	if (chooser_input == -2) {
 		chooser_input = -1; /* if index is going to be not found, select the sink itself */
@@ -68,10 +66,6 @@ void print_sink_list(void) {
 			}
 		}
 	}
-
-//	printf("print sinks: %d\n", sink_input_counter);
-
-//	qsort(sink_input_list, sink_input_counter, sizeof(sink_input_info*), cmp_sink_input_list);
 	
 	for (i = 0; i < sink_counter; ++i) {
 		
@@ -90,22 +84,6 @@ void print_sink_list(void) {
 
 		offset += sink_list[i]->input_counter;
 	}
-	y += i;
-/*	for (i = 0; i < sink_input_counter; ++i) {
-		if (i == chooser)
-			wattron(menu_win, A_REVERSE);
-
-		mvwprintw(menu_win, y+i, x, "%d\t%s\t",
-			sink_input_list[i]->sink,
-			sink_input_list[i]->name);
-
-		if (i == chooser)
-			wattroff(menu_win, A_REVERSE);
-
-		print_volume(sink_input_list[i]->vol, y+i);
-	}*/
-//	clear();
-//	refresh();
 }
 
 void print_input_list(int sink_num) {
@@ -273,9 +251,6 @@ void get_input(void)
 	}
 	
 	collect_all_info();
-//	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));
-//	sink_input_counter = 0;
-//	pa_operation_unref(pa_context_get_sink_input_info_list(context, get_sink_input_info_callback, NULL));
 }
 
 void interface_clear(void)
