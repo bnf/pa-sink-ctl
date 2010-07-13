@@ -152,6 +152,7 @@ void get_input(void)
 	int volume_mult = 0;
 
 	switch (c) {
+		case 'k':
 		case KEY_UP:
 			if (chooser_input == -1 && chooser_sink > 0) {
 				--chooser_sink;
@@ -162,6 +163,7 @@ void get_input(void)
 				--chooser_input;
 			break;
 
+		case 'j':
 		case KEY_DOWN:
 			if (chooser_input == sink_list[chooser_sink]->input_counter - 1 && chooser_sink < sink_counter - 1) {
 					++chooser_sink;
@@ -171,8 +173,10 @@ void get_input(void)
 				++chooser_input;
 			break;
 
+		case 'h':
 		case KEY_LEFT:
 			volume_mult = -1;
+		case 'l':
 		case KEY_RIGHT:
 			if (volume_mult == 0)
 				volume_mult = 1;
@@ -197,7 +201,8 @@ void get_input(void)
 			return;
 			break;
 
-		case 32:
+		case '\n':
+		case ' ':
 			if (chooser_input == -1)
 				break;
 			selected_index = sink_list[chooser_sink]->input_list[chooser_input]->index;
@@ -217,6 +222,7 @@ void get_input(void)
 			return;
 			break;
 
+		case 'q':
 		default:
 			printf("key: %d\n", c);
 			quit();
