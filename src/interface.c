@@ -63,7 +63,7 @@ void print_sink_list(void) {
 		if (i == chooser_sink && chooser_input == -1)
 			wattron(menu_win, A_REVERSE);
 
-		mvwprintw(menu_win, y+i+offset, x, "%d\t%-10s",
+		mvwprintw(menu_win, y+i+offset, x, "%2d %-13s",
 			sink_list[i]->index,
 			sink_list[i]->name);
 		
@@ -102,7 +102,7 @@ void print_input_list(int sink_num) {
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattron(menu_win, A_REVERSE);
 
-		mvwprintw(menu_win, offset + i, 2, "\t %-9s",
+		mvwprintw(menu_win, offset + i, 2, "%*s%-*s", 2+1+1, "", 13 - 1,
 			sink_list[sink_num]->input_list[i]->name);
 
 		if (chooser_sink == sink_num && chooser_input == i)
@@ -115,7 +115,9 @@ void print_input_list(int sink_num) {
 
 void print_volume(pa_volume_t volume, int y) {
 
-	int x = 20;
+	//int x = 20;
+	int x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
+		1 /* space */ + 13 /* input name*/ + 1 /* space */;
 
 	unsigned int vol = (unsigned int) ( (((double)volume) / ((double)VOLUME_MAX)) * VOLUME_BAR_LEN );
 	mvwprintw(menu_win, y, x - 1 , "[");
