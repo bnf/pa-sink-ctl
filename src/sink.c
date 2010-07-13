@@ -15,6 +15,7 @@ sink_info* sink_init(void) {
 	sink_info* sink = (sink_info*) calloc(1, sizeof(sink_info));
 	
 	sink->name = NULL;
+	sink->device = NULL;
 	sink->input_counter = 0;
 	sink->input_max = 1;
 	sink->input_list = NULL;
@@ -31,6 +32,9 @@ void sink_clear(sink_info* sink) {
 
 	if (sink->name != NULL)
 		free(sink->name);
+	
+	if (sink->device != NULL)
+		free(sink->device);
 
 	sink_input_list_clear(sink->input_list, &sink->input_max);
 

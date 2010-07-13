@@ -114,6 +114,8 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 	sink_list[sink_counter]->vol = pa_cvolume_avg(&i->volume);
 	sink_list[sink_counter]->channels = i->volume.channels;
 	sink_list[sink_counter]->name = strdup(i->name);
+	sink_list[sink_counter]->device = strdup(pa_proplist_gets(i->proplist, "device.product.name"));
+
 	++sink_counter;
 }
 
