@@ -181,21 +181,37 @@ void get_input(void)
 		case KEY_RIGHT:
 			if (volume_mult == 0)
 				volume_mult = 1;
-			if (chooser_input == -1)
-				break;
-			sink_input_info *input = sink_list[chooser_sink]->input_list[chooser_input];
-			pa_cvolume volume;
-			volume.channels = input->channels;
 
-			int input_vol = input->vol + 2 * volume_mult * (VOLUME_MAX / 100);
+			int index;
+			pa_cvolume volume;
+			pa_volume_t tmp_vol;
+			pa_operation* (*volume_set) (pa_context  *c, uint32_t idx, const pa_cvolume *volume, pa_context_success_cb_t cb, void *userdata);
+
+			if (chooser_input >= 0) {
+				sink_input_info *input = sink_list[chooser_sink]->input_list[chooser_input];
+				index = input->index;
+				volume.channels = input->channels;
+				tmp_vol = input->vol;
+				volume_set = pa_context_set_sink_input_volume;
+			} else if (chooser_input == -1) {
+				sink_info *sink = sink_list[chooser_sink];
+				index = sink->index;
+				volume.channels = sink->channels;
+				tmp_vol = sink->vol;
+				volume_set = pa_context_set_sink_volume_by_index;
+			} else
+				break;
+
+			int input_vol = tmp_vol + 2 * volume_mult * (VOLUME_MAX / 100);
+
 #define CHECK_MIN_MAX(val, min, max) ((val) > (max) ? (max) : ((val) < (min) ? (min) : (val)))
-			pa_volume_t new_vol = CHECK_MIN_MAX(input_vol, 0, VOLUME_MAX);
+			tmp_vol = CHECK_MIN_MAX(input_vol, 0, VOLUME_MAX);
 #undef CHECK_MIN_MAX
 			for (int i = 0; i < volume.channels; ++i)
-				volume.values[i] = new_vol;
+				volume.values[i] = tmp_vol;
 
-			pa_operation_unref(pa_context_set_sink_input_volume(context, 
-					input->index,
+			pa_operation_unref(volume_set(context, 
+					index,
 					&volume,
 					change_callback,
 					NULL));
