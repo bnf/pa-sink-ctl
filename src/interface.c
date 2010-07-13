@@ -20,6 +20,8 @@ int chooser_input;
 int startx;
 int starty;
 
+int selected_index;
+
 extern int sink_counter;
 extern int sink_max;
 extern sink_info** sink_list;
@@ -53,6 +55,19 @@ void print_sink_list(void) {
 	
 	werase(menu_win);
 	box(menu_win, 0, 0);
+
+
+	/* derive chooser_input from selected_index (this is set when input is moved) */
+	if (chooser_input == -2) {
+		chooser_input = -1; /* if index is going to be not found, select the sink itself */
+		/* step through inputs for current sink and find the selected */
+		for (int i = 0; i < sink_list[chooser_sink]->input_counter; ++i) {
+			if (selected_index == sink_list[chooser_sink]->input_list[i]->index) {
+				chooser_input = i;
+				break;
+			}
+		}
+	}
 
 //	printf("print sinks: %d\n", sink_input_counter);
 
@@ -161,20 +176,23 @@ void get_input(void)
 			break;
 
 		case 32:
-			
-/*			if (chooser_sink < sink_counter - 1)
-				sink = chooser_sink + 1;
+			if (chooser_input == -1)
+				break;
+			selected_index = sink_list[chooser_sink]->input_list[chooser_input]->index;
+			if (chooser_sink < sink_counter - 1)
+				chooser_sink++;//sink = chooser_sink + 1;
 			else
-				sink = 0;
+				chooser_sink = 0;
 
+			chooser_input = -2; /* chooser_input needs to be derived from $selected_index */
 			pa_operation_unref(
 				pa_context_move_sink_input_by_index(
-					context, 
-					sink_input_list[chooser]->index,
-					sink, 
+					context,
+					selected_index,
+					sink_list[chooser_sink]->index, 
 					change_callback, 
 					NULL));
-			return;*/
+			return;
 			break;
 
 		default:
