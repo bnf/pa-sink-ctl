@@ -16,10 +16,10 @@ sink_input_info* sink_input_init(void) {
 }
 
 void sink_input_clear(sink_input_info* sink_input) {
-	
+
 	if (sink_input->name != NULL)
 		free(sink_input->name);
-	
+
 	if (sink_input->pid != NULL)
 		free(sink_input->pid);
 
@@ -33,12 +33,12 @@ sink_input_info** sink_input_list_init(int max) {
 
 	for (int i = 0; i < max; ++i)
 		sink_input_list[i] = NULL;
-	
+
 	return sink_input_list;
 }
 
 void sink_input_list_enlarge(sink_input_info*** sink_input_list, int* max, int counter) {
-	
+
 	*max *= 2;
 	*sink_input_list = (sink_input_info**) realloc(*sink_input_list, (*max) * sizeof(sink_input_info*));
 
@@ -47,7 +47,7 @@ void sink_input_list_enlarge(sink_input_info*** sink_input_list, int* max, int c
 }
 
 void sink_input_list_clear(sink_input_info** sink_input_list, int *max) {
-	
+
 	for (int i = 0; i < (*max); ++i)
 		if (sink_input_list[i] != NULL)
 			sink_input_clear(sink_input_list[i]);
@@ -59,7 +59,7 @@ void sink_input_list_clear(sink_input_info** sink_input_list, int *max) {
 }
 
 void sink_input_check(sink_input_info** sink_input) {
-	
+
 	if (sink_input == NULL)
 		printf("Error: NULL\n");
 

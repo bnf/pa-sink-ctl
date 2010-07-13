@@ -164,6 +164,7 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	sink_input_info* input = sink_list[sink_num]->input_list[counter];
 	input->name = strdup(pa_proplist_gets(i->proplist, "application.name"));
 	input->index = i->index;
+	input->channels = i->volume.channels;
 	input->vol = pa_cvolume_avg(&i->volume);
 
 	++(sink_list[sink_num]->input_counter);

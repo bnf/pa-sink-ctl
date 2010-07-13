@@ -10,6 +10,7 @@ typedef struct _sink_input_info {
 	uint32_t sink;
 	char *name;
 	char *pid;	// maybe useless?!!?
+	uint8_t channels;
 	pa_volume_t vol; // TOTO: exchange with the channel-list
 } sink_input_info;
 

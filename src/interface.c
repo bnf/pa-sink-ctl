@@ -149,6 +149,8 @@ void get_input(void)
 	int c;
 //	uint32_t sink;
 	c = wgetch(menu_win);
+	int volume_mult = 0;
+
 	switch (c) {
 		case KEY_UP:
 			if (chooser_input == -1 && chooser_sink > 0) {
@@ -170,9 +172,29 @@ void get_input(void)
 			break;
 
 		case KEY_LEFT:
-			break;
-
+			volume_mult = -1;
 		case KEY_RIGHT:
+			if (volume_mult == 0)
+				volume_mult = 1;
+			if (chooser_input == -1)
+				break;
+			sink_input_info *input = sink_list[chooser_sink]->input_list[chooser_input];
+			pa_cvolume volume;
+			volume.channels = input->channels;
+
+			int input_vol = input->vol + 2 * volume_mult * (VOLUME_MAX / 100);
+#define CHECK_MIN_MAX(val, min, max) ((val) > (max) ? (max) : ((val) < (min) ? (min) : (val)))
+			pa_volume_t new_vol = CHECK_MIN_MAX(input_vol, 0, VOLUME_MAX);
+#undef CHECK_MIN_MAX
+			for (int i = 0; i < volume.channels; ++i)
+				volume.values[i] = new_vol;
+
+			pa_operation_unref(pa_context_set_sink_input_volume(context, 
+					input->index,
+					&volume,
+					change_callback,
+					NULL));
+			return;
 			break;
 
 		case 32:
