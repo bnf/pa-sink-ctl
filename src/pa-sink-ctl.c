@@ -20,18 +20,10 @@
 #define WIDTH 80
 #define HEIGHT 10
 
-sink_info** sink_list = NULL;
-uint32_t sink_counter;
-uint32_t sink_max;
+GArray *sink_list = NULL;
 
 pa_mainloop_api *mainloop_api = NULL;
 pa_context      *context      = NULL;
-
-// ncurses
-WINDOW *menu_win;
-int chooser;
-int startx;
-int starty;
 
 int main(int argc, char** argv)
 {
@@ -39,9 +31,7 @@ int main(int argc, char** argv)
 	GMainLoop    *g_loop    = NULL;
 	pa_glib_mainloop *m = NULL;
 
-	sink_counter = 0;
-	sink_max = 1;
-	sink_list = sink_list_init(sink_max);
+	sink_list_alloc(&sink_list);
 
 	interface_init();
 
@@ -119,17 +109,20 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 		return;
 	}
 
-	sink_list_check(&sink_list, &sink_max, sink_counter);
-	sink_check(&(sink_list[sink_counter]));
-	sink_list[sink_counter]->index = i->index;
-	sink_list[sink_counter]->mute = i->mute;
-	sink_list[sink_counter]->vol = pa_cvolume_avg(&i->volume);
-	sink_list[sink_counter]->channels = i->volume.channels;
-	sink_list[sink_counter]->name = strdup(i->name);
-	const char *tmp = pa_proplist_gets(i->proplist, "device.product.name");
-	sink_list[sink_counter]->device = (tmp == NULL) ? NULL : strdup(tmp);
+	g_array_append_val(sink_list, ((sink_info) {
+		.index = i->index,
+		.mute  = i->mute,
+		.vol   = pa_cvolume_avg(&i->volume),
+		.channels = i->volume.channels,
+		.name = strdup(i->name),
+		.device = pa_proplist_contains(i->proplist, "device.product.name") ? 
+			strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
 
-	++sink_counter;
+		.input_counter = 0,
+		.input_max     = 1,
+		.input_list    = sink_input_list_init(1)
+
+	}));
 }
 
 /*
@@ -155,23 +148,25 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	snprintf(k, sizeof(k), "%u", i->client);
 
 	int sink_num = i->sink;
-	int counter = sink_list[sink_num]->input_counter;
+	int counter = g_array_index(sink_list, sink_info, sink_num).input_counter; 
 	// check the length of the list
-	sink_check_input_list(sink_list[sink_num]);
+	sink_check_input_list(&g_array_index(sink_list, sink_info, sink_num));
+
 	// check the current element of the list
-	sink_input_check(&(sink_list[ sink_num ]->input_list[ counter ]));
-	sink_input_info* input = sink_list[sink_num]->input_list[counter];
+	sink_input_check(&(g_array_index(sink_list, sink_info, sink_num).input_list[counter]));
+
+	sink_input_info* input = g_array_index(sink_list, sink_info, sink_num).input_list[counter];
 	input->name = strdup(pa_proplist_gets(i->proplist, "application.name"));
 	input->index = i->index;
 	input->channels = i->volume.channels;
 	input->vol = pa_cvolume_avg(&i->volume);
 	input->mute = i->mute;
 
-	++(sink_list[sink_num]->input_counter);
+	++(g_array_index(sink_list, sink_info, sink_num).input_counter);
 }
 
 void quit(void) {
-	sink_list_clear(sink_list, &sink_max, &sink_counter);
+	sink_list_free(sink_list);
 	interface_clear();
 	exit(0);
 }
@@ -186,6 +181,7 @@ void change_callback(pa_context* c, int success, void* userdate) {
 }
 
 void collect_all_info(void) {
-	sink_list_reset(sink_list, &sink_counter);
+	sink_list_free(sink_list);
+	sink_list_alloc(&sink_list);
 	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));
 }
