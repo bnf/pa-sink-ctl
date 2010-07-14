@@ -22,18 +22,9 @@ void sink_list_alloc(GArray **sink_list) {
 }
 
 /*
- * frees a complete sink array
- */
-void sink_list_free(GArray *sink_list) {
-	for (int i = 0; i < sink_list->len; ++i)
-		sink_clear(&g_array_index(sink_list, sink_info, i));
-	g_array_free(sink_list, true);
-}
-
-/*
  * frees all dynamic allocated components of a sink 
  */
-void sink_clear(sink_info* sink) {
+static void sink_clear(sink_info* sink) {
 
 	if (sink->name != NULL)
 		free(sink->name);
@@ -43,4 +34,14 @@ void sink_clear(sink_info* sink) {
 
 	sink_input_list_clear(sink->input_list, &sink->input_max);
 }
+
+/*
+ * frees a complete sink array
+ */
+void sink_list_free(GArray *sink_list) {
+	for (int i = 0; i < sink_list->len; ++i)
+		sink_clear(&g_array_index(sink_list, sink_info, i));
+	g_array_free(sink_list, true);
+}
+
 

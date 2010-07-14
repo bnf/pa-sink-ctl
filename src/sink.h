@@ -28,6 +28,5 @@ void sink_check_input_list(sink_info*);
 
 void sink_list_alloc(GArray **sink_list);
 void sink_list_free(GArray *sink_list);
-void sink_clear(sink_info*);
 
 #endif
