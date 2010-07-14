@@ -58,8 +58,8 @@ void print_sink_list(void) {
 	if (chooser_input == -2) {
 		chooser_input = -1; /* if index is going to be not found, select the sink itself */
 		/* step through inputs for current sink and find the selected */
-		for (int i = 0; i < g_array_index(sink_list, sink_info, chooser_sink).input_counter; ++i) {
-			if (selected_index == g_array_index(sink_list, sink_info, chooser_sink).input_list[i]->index) {
+		for (int i = 0; i < g_array_index(sink_list, sink_info, chooser_sink).input_list->len; ++i) {
+			if (selected_index == g_array_index(g_array_index(sink_list, sink_info, chooser_sink).input_list, sink_input_info, i).index) {
 				chooser_input = i;
 				break;
 			}
@@ -81,7 +81,7 @@ void print_sink_list(void) {
 		
 		print_input_list(i);
 
-		offset += g_array_index(sink_list, sink_info, i).input_counter;
+		offset += g_array_index(sink_list, sink_info, i).input_list->len;
 	}
 	wrefresh(menu_win);
 }
@@ -89,20 +89,20 @@ void print_sink_list(void) {
 void print_input_list(int sink_num) {
 	int offset = sink_num + 1 + 2;
 	for (int i = 0; i < sink_num; ++i)
-		offset += g_array_index(sink_list, sink_info, i).input_counter;
+		offset += g_array_index(sink_list, sink_info, i).input_list->len;
 
-	for (int i = 0; i < g_array_index(sink_list, sink_info, sink_num).input_counter; ++i) {
+	for (int i = 0; i < g_array_index(sink_list, sink_info, sink_num).input_list->len; ++i) {
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattron(menu_win, A_REVERSE);
 
 		mvwprintw(menu_win, offset + i, 2, "%*s%-*s", 2+1+1, "", 13 - 1,
-			g_array_index(sink_list, sink_info, sink_num).input_list[i]->name);
+			g_array_index(g_array_index(sink_list, sink_info, sink_num).input_list, sink_input_info, i).name);
 
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattroff(menu_win, A_REVERSE);
 
-		print_volume(g_array_index(sink_list, sink_info, sink_num).input_list[i]->vol, 
-				g_array_index(sink_list, sink_info, sink_num).input_list[i]->mute, offset + i);
+		print_volume(g_array_index(g_array_index(sink_list, sink_info, sink_num).input_list, sink_input_info, i).vol, 
+				g_array_index(g_array_index(sink_list, sink_info, sink_num).input_list, sink_input_info, i).mute, offset + i);
 	}
 		
 }
@@ -139,7 +139,7 @@ void get_input(void)
 		case KEY_UP:
 			if (chooser_input == -1 && chooser_sink > 0) {
 				--chooser_sink;
-				chooser_input = g_array_index(sink_list, sink_info, chooser_sink).input_counter - 1;
+				chooser_input = (gint)g_array_index(sink_list, sink_info, chooser_sink).input_list->len - 1;
 			}
 
 			else if (chooser_input >= 0)
@@ -148,11 +148,11 @@ void get_input(void)
 
 		case 'j':
 		case KEY_DOWN:
-			if (chooser_input == g_array_index(sink_list, sink_info, chooser_sink).input_counter - 1 && chooser_sink < sink_list->len - 1) {
+			if (chooser_input == ((gint)g_array_index(sink_list, sink_info, chooser_sink).input_list->len - 1) && chooser_sink < sink_list->len - 1) {
 					++chooser_sink;
 					chooser_input = -1;
 			}
-			else if (chooser_input < g_array_index(sink_list, sink_info, chooser_sink).input_counter - 1)
+			else if (chooser_input < ((gint)g_array_index(sink_list, sink_info, chooser_sink).input_list->len - 1))
 				++chooser_input;
 			break;
 
@@ -169,7 +169,7 @@ void get_input(void)
 			pa_operation* (*volume_set) (pa_context*,uint32_t,const pa_cvolume*,pa_context_success_cb_t,void*);
 
 			if (chooser_input >= 0) {
-				sink_input_info *input = g_array_index(sink_list, sink_info, chooser_sink).input_list[chooser_input];
+				sink_input_info *input = &g_array_index(g_array_index(sink_list, sink_info, chooser_sink).input_list, sink_input_info, chooser_input);
 				index = input->index;
 				volume.channels = input->channels;
 				tmp_vol = input->vol;
@@ -201,7 +201,7 @@ void get_input(void)
 		case 'M': {
 			pa_operation* (*mute_set) (pa_context*,uint32_t,int,pa_context_success_cb_t,void*);
 			if (chooser_input >= 0) {
-				sink_input_info *input = g_array_index(sink_list, sink_info, chooser_sink).input_list[chooser_input];
+				sink_input_info *input = &g_array_index(g_array_index(sink_list, sink_info, chooser_sink).input_list, sink_input_info, chooser_input);
 				index = input->index;
 				mute = input->mute;
 				mute_set = pa_context_set_sink_input_mute;
@@ -224,7 +224,7 @@ void get_input(void)
 		case ' ':
 			if (chooser_input == -1)
 				break;
-			selected_index = g_array_index(sink_list, sink_info, chooser_sink).input_list[chooser_input]->index;
+			selected_index = g_array_index(g_array_index(sink_list, sink_info, chooser_sink).input_list, sink_input_info, chooser_input).index;
 			if (chooser_sink < sink_list->len - 1)
 				chooser_sink++;//sink = chooser_sink + 1;
 			else

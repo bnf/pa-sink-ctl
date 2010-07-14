@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <glib.h>
 #include <pulse/pulseaudio.h>
 #include <ncurses.h>
 #include <string.h>
@@ -6,77 +7,20 @@
 
 #include "sink_input.h"
 
-sink_input_info* sink_input_init(void) {
-
-	sink_input_info* sink_input = (sink_input_info*) calloc(1, sizeof(sink_input_info));
-	sink_input->name = NULL;
-	sink_input->pid = NULL;
-
-	return sink_input;
+GArray *sink_input_list_alloc(void) {
+	return g_array_sized_new(false, false, sizeof(sink_input_info), 8);
 }
 
-void sink_input_clear(sink_input_info* sink_input) {
-
+static void sink_input_clear(sink_input_info* sink_input) {
 	if (sink_input->name != NULL)
 		free(sink_input->name);
 
 	if (sink_input->pid != NULL)
 		free(sink_input->pid);
-
-	free(sink_input);
-	// sink_input = NULL;
 }
 
-sink_input_info** sink_input_list_init(int max) {
-
-	sink_input_info** sink_input_list = (sink_input_info**) calloc(max, sizeof(sink_input_info*));
-
-	for (int i = 0; i < max; ++i)
-		sink_input_list[i] = NULL;
-
-	return sink_input_list;
+void sink_input_list_free(GArray *sink_input_list) {
+	for (int i = 0; i < sink_input_list->len; ++i)
+		sink_input_clear(&g_array_index(sink_input_list, sink_input_info, i));
+	g_array_free(sink_input_list, true);
 }
-
-void sink_input_list_enlarge(sink_input_info*** sink_input_list, int* max, int counter) {
-
-	*max *= 2;
-	*sink_input_list = (sink_input_info**) realloc(*sink_input_list, (*max) * sizeof(sink_input_info*));
-
-	for (int i = counter; i < *max; ++i)
-		(*sink_input_list)[i] = NULL;
-}
-
-void sink_input_list_clear(sink_input_info** sink_input_list, int *max) {
-
-	for (int i = 0; i < (*max); ++i)
-		if (sink_input_list[i] != NULL)
-			sink_input_clear(sink_input_list[i]);
-
-	(*max) = 0;
-
-	free(sink_input_list);
-	// sink_input_list = NULL;
-}
-
-void sink_input_check(sink_input_info** sink_input) {
-
-	if (sink_input == NULL)
-		printf("Error: NULL\n");
-
-	if ((*sink_input) == NULL)
-		(*sink_input) = sink_input_init();
-}
-
-int cmp_sink_input_list(const void *a, const void *b) {
-
-	sink_input_info* sinka = *((sink_input_info**) a);
-	sink_input_info* sinkb = *((sink_input_info**) b);
-
-	if (sinka->sink < sinkb->sink)
-		return -1;
-	else if (sinka->sink > sinkb->sink)
-		return 1;
-	else
-		return 0;
-}
-

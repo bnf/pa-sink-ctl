@@ -17,16 +17,10 @@ typedef struct _sink_info {
 	int mute;
 	uint8_t channels;
 	pa_volume_t vol;
-	
-	// input list
-	int input_counter;
-	int input_max;
-	sink_input_info** input_list;
+	GArray *input_list;
 } sink_info;
 
-void sink_check_input_list(sink_info*);
-
-void sink_list_alloc(GArray **sink_list);
+GArray *sink_list_alloc(void);
 void sink_list_free(GArray *sink_list);
 
 #endif

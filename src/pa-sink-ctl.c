@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 	GMainLoop    *g_loop    = NULL;
 	pa_glib_mainloop *m = NULL;
 
-	sink_list_alloc(&sink_list);
+	sink_list = sink_list_alloc();
 
 	interface_init();
 
@@ -118,10 +118,7 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 		.device = pa_proplist_contains(i->proplist, "device.product.name") ? 
 			strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
 
-		.input_counter = 0,
-		.input_max     = 1,
-		.input_list    = sink_input_list_init(1)
-
+		.input_list = sink_input_list_alloc()
 	}));
 }
 
@@ -147,22 +144,15 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	snprintf(t, sizeof(t), "%u", i->owner_module);
 	snprintf(k, sizeof(k), "%u", i->client);
 
-	int sink_num = i->sink;
-	int counter = g_array_index(sink_list, sink_info, sink_num).input_counter; 
-	// check the length of the list
-	sink_check_input_list(&g_array_index(sink_list, sink_info, sink_num));
-
-	// check the current element of the list
-	sink_input_check(&(g_array_index(sink_list, sink_info, sink_num).input_list[counter]));
-
-	sink_input_info* input = g_array_index(sink_list, sink_info, sink_num).input_list[counter];
-	input->name = strdup(pa_proplist_gets(i->proplist, "application.name"));
-	input->index = i->index;
-	input->channels = i->volume.channels;
-	input->vol = pa_cvolume_avg(&i->volume);
-	input->mute = i->mute;
-
-	++(g_array_index(sink_list, sink_info, sink_num).input_counter);
+	g_array_append_val(g_array_index(sink_list, sink_info, i->sink).input_list, ((sink_input_info) {
+		.index = i->index,
+		.sink = i->sink,
+		.name = strdup(pa_proplist_gets(i->proplist, "application.name")),
+		.mute = i->mute,
+		.channels = i->volume.channels,
+		.vol = pa_cvolume_avg(&i->volume),
+		.pid = NULL /* maybe obsolete */
+	}));
 }
 
 void quit(void) {
@@ -182,6 +172,6 @@ void change_callback(pa_context* c, int success, void* userdate) {
 
 void collect_all_info(void) {
 	sink_list_free(sink_list);
-	sink_list_alloc(&sink_list);
+	sink_list = sink_list_alloc();
 	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));
 }

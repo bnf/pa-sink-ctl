@@ -8,31 +8,24 @@
 #include "sink_input.h"
 #include "sink.h"
 
-void sink_check_input_list(sink_info* sink) {
-	
-	if (sink->input_counter >= sink->input_max)
-		sink_input_list_enlarge(&sink->input_list, &sink->input_max, sink->input_counter);
-}
-
 /*
  * init a sink list
  */
-void sink_list_alloc(GArray **sink_list) {
-	*sink_list = g_array_sized_new(false, false, sizeof(sink_info), 16);
+GArray *sink_list_alloc(void) {
+	return g_array_sized_new(false, false, sizeof(sink_info), 16);
 }
 
 /*
  * frees all dynamic allocated components of a sink 
  */
 static void sink_clear(sink_info* sink) {
-
 	if (sink->name != NULL)
 		free(sink->name);
 	
 	if (sink->device != NULL)
 		free(sink->device);
 
-	sink_input_list_clear(sink->input_list, &sink->input_max);
+	sink_input_list_free(sink->input_list);
 }
 
 /*
