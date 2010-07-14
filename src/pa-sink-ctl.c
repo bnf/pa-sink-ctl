@@ -1,9 +1,14 @@
 #define _XOPEN_SOURCE 500
-#include <string.h>
 #include <stdio.h>
-#include <pulse/pulseaudio.h>
-#include <ncurses.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include <glib.h>
+
+#include <pulse/pulseaudio.h>
+#include <pulse/glib-mainloop.h>
+
+#include <ncurses.h>
 
 #include "sink_input.h"
 #include "sink.h"
@@ -20,7 +25,7 @@ uint32_t sink_counter;
 uint32_t sink_max;
 
 pa_mainloop_api *mainloop_api = NULL;
-pa_context *context = NULL;
+pa_context      *context      = NULL;
 
 // ncurses
 WINDOW *menu_win;
@@ -30,20 +35,25 @@ int starty;
 
 int main(int argc, char** argv)
 {
+	GMainContext *g_context = NULL;
+	GMainLoop    *g_loop    = NULL;
+	pa_glib_mainloop *m = NULL;
+
 	sink_counter = 0;
 	sink_max = 1;
 	sink_list = sink_list_init(sink_max);
 
 	interface_init();
-	pa_mainloop *m = NULL;
-	int ret = 1;
 
-	if (!(m = pa_mainloop_new())) {
-		printf("error: pa_mainloop_new() failed.\n");
+	g_context = g_main_context_new();
+	g_loop    = g_main_loop_new(g_context, false);
+
+	if (!(m = pa_glib_mainloop_new(g_context))) {
+		printf("error: pa_glib_mainloop_new() failed.\n");
 		return -1;
 	}
 
-	mainloop_api = pa_mainloop_get_api(m);
+	mainloop_api = pa_glib_mainloop_get_api(m);
 
 	if (!(context = pa_context_new(mainloop_api, "pa-sink-ctl"))) {
 		printf("error: pa_context_new() failed.\n");
@@ -56,12 +66,14 @@ int main(int argc, char** argv)
 		printf("error: pa_context_connect() failed.\n");
 	}
 
-	if (pa_mainloop_run(m, &ret) < 0) {
-		printf("error: pa_mainloop_run() failed.\n");
-		return -1;
-	}
+	g_main_loop_run(g_loop);
 
-	return ret;
+	pa_glib_mainloop_free(m);
+
+	g_main_loop_unref(g_loop);
+	g_main_context_unref(g_context);
+
+	return 0;
 }
 /*
  * is called after connection

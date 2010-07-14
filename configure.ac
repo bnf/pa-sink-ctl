@@ -14,13 +14,15 @@ AC_PROG_MAKE_SET
 # Checks for libraries.
 AC_CHECK_LIB([ncurses], [newwin], [CURSES_LIBS=-lncurses], [echo "Error: you need ncurses!"; exit 1])
 PKG_CHECK_MODULES(PULSE, [libpulse], [], [echo "Error: you need libpulse!"; exit 1])
+PKG_CHECK_MODULES(PULSE_MAINLOOP, [libpulse-mainloop-glib], [], [echo "Error: you need libpulse-mainloop-glib"; exit 1])
+PKG_CHECK_MODULES(GLIB, [glib-2.0], [], [echo "Error: you need glib!"; exit1])
 
 AC_SUBST(CURSES_LIBS)
 AC_SUBST(PULSE_CFLAGS)
 AC_SUBST(PULSE_LIBS)
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdio.h stdlib.h string.h ncurses.h pulse/pulseaudio.h])
+AC_CHECK_HEADERS([stdio.h stdlib.h string.h ncurses.h glib.h pulse/pulseaudio.h pulse/glib-mainloop.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_UINT32_T
