@@ -187,10 +187,11 @@ void get_input(void)
 				};
 			} else
 				break;
-			int input_vol = tmp.tmp_vol + 2 * volume_mult * (VOLUME_MAX / 100);
-			tmp.tmp_vol = CLAMP(input_vol, VOLUME_MIN, VOLUME_MAX); /* force input_vol in [0, VOL_NORM] */
-			for (int i = 0; i < tmp.volume.channels; ++i)
-				tmp.volume.values[i] = tmp.tmp_vol;
+
+			pa_cvolume_set(&tmp.volume, tmp.volume.channels,
+				CLAMP(tmp.tmp_vol + 2 * volume_mult * (VOLUME_MAX / 100),
+					VOLUME_MIN, VOLUME_MAX) /* force vol in [0, VOL_MAX] */
+			);
 
 			pa_operation_unref(tmp.volume_set(context, tmp.index, &tmp.volume, change_callback, NULL));
 			return;
