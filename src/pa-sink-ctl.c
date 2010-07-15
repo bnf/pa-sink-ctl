@@ -143,7 +143,7 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	snprintf(t, sizeof(t), "%u", i->owner_module);
 	snprintf(k, sizeof(k), "%u", i->client);
 
-	g_array_append_val(g_array_index(sink_list, sink_info, i->sink).input_list, ((sink_input_info) {
+	g_array_append_val(sink_list_get(i->sink)->input_list, ((sink_input_info) {
 		.index = i->index,
 		.sink = i->sink,
 		.name = strdup(pa_proplist_gets(i->proplist, "application.name")),

@@ -8,6 +8,16 @@
 #include "sink_input.h"
 #include "sink.h"
 
+extern GArray *sink_list;
+
+sink_info *sink_list_get(int index) {
+	return &g_array_index(sink_list, sink_info, index);
+}
+
+sink_input_info *sink_input_get(int sink_list_index, int index) {
+	return &g_array_index(sink_list_get(sink_list_index)->input_list, sink_input_info, index);
+}
+
 /*
  * init a sink list
  */
