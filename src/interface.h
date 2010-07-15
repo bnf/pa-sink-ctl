@@ -1,7 +1,7 @@
 #ifndef INTERFACE_H
 #define INTERFACE_H
 
-#include <ncurses.h>
+#include <pulse/pulseaudio.h>
 
 #define VOLUME_MAX UINT16_MAX
 #define VOLUME_BAR_LEN 50

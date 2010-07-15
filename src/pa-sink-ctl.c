@@ -68,8 +68,8 @@ int main(int argc, char** argv)
 /*
  * is called after connection
  */
-void context_state_callback(pa_context *c, void *userdata) {
-
+void context_state_callback(pa_context *c, void *userdata)
+{
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_CONNECTING:
 //			printf("connecting...\n");
@@ -97,8 +97,8 @@ void context_state_callback(pa_context *c, void *userdata) {
 /*
  * the begin of the callback loops
  */
-void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, void *userdata) {
-
+void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, void *userdata)
+{
 	if (is_last < 0) {
 		printf("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
 		quit();
@@ -117,7 +117,6 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 		.name = strdup(i->name),
 		.device = pa_proplist_contains(i->proplist, "device.product.name") ? 
 			strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
-
 		.input_list = sink_input_list_alloc()
 	}));
 }
@@ -125,7 +124,8 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 /*
  * is called after sink-input
  */
-void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, int is_last, void *userdata) {
+void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, int is_last, void *userdata)
+{
 	char t[32], k[32];
 
 	if (is_last < 0) {
@@ -155,7 +155,8 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	}));
 }
 
-void quit(void) {
+void quit(void)
+{
 	sink_list_free(sink_list);
 	interface_clear();
 	exit(0);
@@ -164,13 +165,13 @@ void quit(void) {
 /*
  * is called, after user input
  */
-void change_callback(pa_context* c, int success, void* userdate) {
-
-	// get information about sinks
+void change_callback(pa_context* c, int success, void* userdate)
+{
 	collect_all_info();
 }
 
-void collect_all_info(void) {
+void collect_all_info(void)
+{
 	sink_list_free(sink_list);
 	sink_list = sink_list_alloc();
 	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));

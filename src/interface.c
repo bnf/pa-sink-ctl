@@ -45,7 +45,8 @@ void interface_init(void)
 	refresh();
 }
 
-void print_sink_list(void) {
+void print_sink_list(void)
+{
 	int i = 0;
 	int x = 2;
 	int y = 2;
@@ -86,7 +87,8 @@ void print_sink_list(void) {
 	wrefresh(menu_win);
 }
 
-void print_input_list(int sink_num) {
+void print_input_list(int sink_num)
+{
 	int offset = sink_num + 1 + 2;
 	for (int i = 0; i < sink_num; ++i)
 		offset += g_array_index(sink_list, sink_info, i).input_list->len;
@@ -107,9 +109,8 @@ void print_input_list(int sink_num) {
 		
 }
 
-void print_volume(pa_volume_t volume, int mute, int y) {
-
-	//int x = 20;
+void print_volume(pa_volume_t volume, int mute, int y)
+{
 	int x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
 		1 /* space */ + 13 /* input name*/ + 1 /* space */;
 
@@ -124,16 +125,13 @@ void print_volume(pa_volume_t volume, int mute, int y) {
 	
 	mvwprintw(menu_win, y, x + VOLUME_BAR_LEN, "]");
 }
+
 void get_input(void)
 {
 	int c;
-//	uint32_t sink;
-	c = wgetch(menu_win);
-
 	int volume_mult = 0;
-	int index;
-	int mute;
 
+	c = wgetch(menu_win);
 	switch (c) {
 		case 'k':
 		case KEY_UP:
@@ -148,7 +146,7 @@ void get_input(void)
 
 		case 'j':
 		case KEY_DOWN:
-			if (chooser_input == ((gint)g_array_index(sink_list, sink_info, chooser_sink).input_list->len - 1) && chooser_sink < sink_list->len - 1) {
+			if (chooser_input == ((gint)g_array_index(sink_list, sink_info, chooser_sink).input_list->len - 1) && chooser_sink < (gint)sink_list->len - 1) {
 					++chooser_sink;
 					chooser_input = -1;
 			}
@@ -159,65 +157,70 @@ void get_input(void)
 		case 'h':
 		case KEY_LEFT:
 			volume_mult = -1;
+			/* fall through */
 		case 'l':
 		case KEY_RIGHT:
 			if (volume_mult == 0)
 				volume_mult = 1;
 
-			pa_cvolume volume;
-			pa_volume_t tmp_vol;
-			pa_operation* (*volume_set) (pa_context*,uint32_t,const pa_cvolume*,pa_context_success_cb_t,void*);
+			struct tmp_t {
+				int index;
+				pa_cvolume volume;
+				pa_volume_t tmp_vol;
+				pa_operation* (*volume_set) (pa_context*, uint32_t, const pa_cvolume*, pa_context_success_cb_t, void*);
+			} tmp;
 
 			if (chooser_input >= 0) {
 				sink_input_info *input = &g_array_index(g_array_index(sink_list, sink_info, chooser_sink).input_list, sink_input_info, chooser_input);
-				index = input->index;
-				volume.channels = input->channels;
-				tmp_vol = input->vol;
-				volume_set = pa_context_set_sink_input_volume;
+				tmp = (struct tmp_t) {
+					.index      = input->index,
+					.volume     = (pa_cvolume) {.channels = input->channels},
+					.tmp_vol    = input->vol, 
+					.volume_set = pa_context_set_sink_input_volume
+				};
 			} else if (chooser_input == -1) {
 				sink_info *sink = &g_array_index(sink_list, sink_info, chooser_sink);
-				index = sink->index;
-				volume.channels = sink->channels;
-				tmp_vol = sink->vol;
-				volume_set = pa_context_set_sink_volume_by_index;
+				tmp = (struct tmp_t) {
+					.index      = sink->index,
+					.volume     = (pa_cvolume) {.channels = sink->channels},
+					.tmp_vol    = sink->vol,
+					.volume_set = pa_context_set_sink_volume_by_index
+				};
 			} else
 				break;
 
-			int input_vol = tmp_vol + 2 * volume_mult * (VOLUME_MAX / 100);
+			int input_vol = tmp.tmp_vol + 2 * volume_mult * (VOLUME_MAX / 100);
+			tmp.tmp_vol = CLAMP(input_vol, 0, VOLUME_MAX); /* force input_vol in [0, VOL_MAX] */
+			for (int i = 0; i < tmp.volume.channels; ++i)
+				tmp.volume.values[i] = tmp.tmp_vol;
 
-#define CHECK_MIN_MAX(val, min, max) ((val) > (max) ? (max) : ((val) < (min) ? (min) : (val)))
-			tmp_vol = CHECK_MIN_MAX(input_vol, 0, VOLUME_MAX);
-#undef CHECK_MIN_MAX
-			for (int i = 0; i < volume.channels; ++i)
-				volume.values[i] = tmp_vol;
-
-			pa_operation_unref(volume_set(context, 
-					index,
-					&volume,
-					change_callback,
-					NULL));
+			pa_operation_unref(tmp.volume_set(context, tmp.index, &tmp.volume, change_callback, NULL));
 			return;
 		case 'm':
 		case 'M': {
-			pa_operation* (*mute_set) (pa_context*,uint32_t,int,pa_context_success_cb_t,void*);
+			struct tmp_t {
+				int index, mute;
+				pa_operation* (*mute_set) (pa_context*, uint32_t, int, pa_context_success_cb_t, void*);
+			} tmp;
+
 			if (chooser_input >= 0) {
 				sink_input_info *input = &g_array_index(g_array_index(sink_list, sink_info, chooser_sink).input_list, sink_input_info, chooser_input);
-				index = input->index;
-				mute = input->mute;
-				mute_set = pa_context_set_sink_input_mute;
+				tmp = (struct tmp_t) {
+					.index    = input->index,
+					.mute     = input->mute,
+					.mute_set = pa_context_set_sink_input_mute
+				};
 			} else if (chooser_input == -1) {
 				sink_info *sink = &g_array_index(sink_list, sink_info, chooser_sink);
-				index = sink->index;
-				mute = sink->mute;
-				mute_set = pa_context_set_sink_mute_by_index;
+				tmp = (struct tmp_t) {
+					.index    = sink->index,
+					.mute     = sink->mute,
+					.mute_set = pa_context_set_sink_mute_by_index
+				};
 			} else
 				break;
-			
-			pa_operation_unref(mute_set(context, 
-					index,
-					!mute,
-					change_callback,
-					NULL));
+
+			pa_operation_unref(tmp.mute_set(context, tmp.index, !tmp.mute, change_callback, NULL));
 			return;
 		}
 		case '\n':
@@ -225,21 +228,16 @@ void get_input(void)
 			if (chooser_input == -1)
 				break;
 			selected_index = g_array_index(g_array_index(sink_list, sink_info, chooser_sink).input_list, sink_input_info, chooser_input).index;
-			if (chooser_sink < sink_list->len - 1)
-				chooser_sink++;//sink = chooser_sink + 1;
+			if (chooser_sink < (gint)sink_list->len - 1)
+				chooser_sink++;
 			else
 				chooser_sink = 0;
 
 			chooser_input = -2; /* chooser_input needs to be derived from $selected_index */
-			pa_operation_unref(
-				pa_context_move_sink_input_by_index(
-					context,
-					selected_index,
-					g_array_index(sink_list, sink_info, chooser_sink).index, 
-					change_callback, 
-					NULL));
+			pa_operation_unref(pa_context_move_sink_input_by_index(context, selected_index,
+						g_array_index(sink_list, sink_info, chooser_sink).index,
+						change_callback, NULL));
 			return;
-			break;
 
 		case 'q':
 		default:
@@ -247,7 +245,6 @@ void get_input(void)
 			quit();
 			break;
 	}
-	
 	collect_all_info();
 }
 

@@ -5,6 +5,7 @@
 
 #include <glib.h>
 #include <pulse/pulseaudio.h>
+
 // TODO: change this with the given define from pulselib
 #define VOLUME_MAX UINT16_MAX
 
