@@ -3,7 +3,6 @@
 
 #include <pulse/pulseaudio.h>
 
-#define VOLUME_MAX UINT16_MAX
 #define VOLUME_BAR_LEN 50
 #define WIDTH 80
 #define HEIGHT 10

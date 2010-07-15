@@ -2,16 +2,19 @@
 #define PA_SINK_CTL_H
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <pulse/pulseaudio.h>
 #include <ncurses.h>
 #include <string.h>
-#include <stdlib.h>
 
 #include "sink_input.h"
 #include "sink.h"
 #include "interface.h"
 
-#define VOLUME_MAX UINT16_MAX
+#define VOLUME_MIN ((intmax_t) PA_VOLUME_MUTED)
+#define VOLUME_MAX ((intmax_t) PA_VOLUME_NORM)
+
 #define VOLUME_BAR_LEN 50
 #define WIDTH 80
 #define HEIGHT 10

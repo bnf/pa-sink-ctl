@@ -6,9 +6,6 @@
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 
-// TODO: change this with the given define from pulselib
-#define VOLUME_MAX UINT16_MAX
-
 typedef struct _sink_input_info {
 	uint32_t index;
 	uint32_t sink;

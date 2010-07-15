@@ -9,7 +9,6 @@
 #include "sink.h"
 #include "pa-sink-ctl.h"
 
-#define VOLUME_MAX UINT16_MAX
 #define VOLUME_BAR_LEN 50
 #define WIDTH 80
 #define HEIGHT 10
@@ -188,9 +187,8 @@ void get_input(void)
 				};
 			} else
 				break;
-
 			int input_vol = tmp.tmp_vol + 2 * volume_mult * (VOLUME_MAX / 100);
-			tmp.tmp_vol = CLAMP(input_vol, 0, VOLUME_MAX); /* force input_vol in [0, VOL_MAX] */
+			tmp.tmp_vol = CLAMP(input_vol, VOLUME_MIN, VOLUME_MAX); /* force input_vol in [0, VOL_NORM] */
 			for (int i = 0; i < tmp.volume.channels; ++i)
 				tmp.volume.values[i] = tmp.tmp_vol;
 

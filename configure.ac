@@ -22,7 +22,7 @@ AC_SUBST(PULSE_CFLAGS)
 AC_SUBST(PULSE_LIBS)
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdio.h stdlib.h string.h ncurses.h glib.h pulse/pulseaudio.h pulse/glib-mainloop.h])
+AC_CHECK_HEADERS([stdio.h stdlib.h stdint.h string.h ncurses.h glib.h pulse/pulseaudio.h pulse/glib-mainloop.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_UINT32_T
