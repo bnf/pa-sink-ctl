@@ -11,15 +11,11 @@
 #include "pa-sink-ctl.h"
 
 #define VOLUME_BAR_LEN 50
-#define WIDTH 80
-#define HEIGHT 10
 
 // ncurses
 WINDOW *menu_win;
 int chooser_sink;
 int chooser_input;
-int startx;
-int starty;
 
 int selected_index;
 
@@ -31,14 +27,13 @@ void interface_init(void)
 {
 	chooser_sink = 0;
 	chooser_input = -1;
-
+	
 	initscr();
 	clear();
 	noecho();
 	cbreak();	/* Line buffering disabled. pass on everything */
-	startx = (80 - WIDTH) / 2;
-	starty = (24 - HEIGHT) / 2;
-	menu_win = newwin(HEIGHT, WIDTH, starty, startx);
+	
+	menu_win = newwin(0, 0, 0, 0);
 	nodelay(menu_win, TRUE); /* important! make wgetch non-blocking */
 	keypad(menu_win, TRUE);
 	curs_set(0); /* hide cursor */
