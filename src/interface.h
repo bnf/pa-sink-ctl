@@ -12,6 +12,7 @@ void print_input_list(int sink_num);
 void print_volume(pa_volume_t, int, int);
 void get_input(void);
 void interface_init(void);
+void interface_resize(void);
 void interface_clear(void);
 
 #endif

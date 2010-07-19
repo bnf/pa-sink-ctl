@@ -15,13 +15,13 @@
 
 // ncurses
 WINDOW *menu_win;
+int height;
+int width;
 int chooser_sink;
 int chooser_input;
-
 int selected_index;
 
 extern GArray *sink_list;
-
 extern pa_context* context;
 
 void resize(int signal);
@@ -56,13 +56,19 @@ void interface_init(void)
 	refresh();
 }
 
+void interface_resize(void)
+{
+	getmaxyx(stdscr, height, width);
+	wresize(menu_win, height, width);
+}
+
 void print_sink_list(void)
 {
 	int i = 0;
 	int x = 2;
 	int y = 2;
 	int offset = 0;
-	
+		
 	werase(menu_win);
 	box(menu_win, 0, 0);
 
