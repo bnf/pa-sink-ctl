@@ -192,7 +192,7 @@ void quit(void)
  */
 void change_callback(pa_context* c, int success, void* userdate)
 {
-	print_sink_list();
+	return;
 }
 
 void collect_all_info(void)
