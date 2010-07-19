@@ -4,6 +4,7 @@
 #include <ncurses.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "interface.h"
 #include "sink.h"
@@ -38,6 +39,7 @@ void interface_init(void)
 	startx = (80 - WIDTH) / 2;
 	starty = (24 - HEIGHT) / 2;
 	menu_win = newwin(HEIGHT, WIDTH, starty, startx);
+	nodelay(menu_win, TRUE); /* important! make wgetch non-blocking */
 	keypad(menu_win, TRUE);
 	curs_set(0); /* hide cursor */
 	mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
@@ -130,6 +132,10 @@ void get_input(void)
 
 	c = wgetch(menu_win);
 	switch (c) {
+		case ERR:
+			/* nothing typed in */
+			return;
+
 		case 'k':
 		case KEY_UP:
 			if (chooser_input == -1 && chooser_sink > 0) {
@@ -139,6 +145,7 @@ void get_input(void)
 
 			else if (chooser_input >= 0)
 				--chooser_input;
+			print_sink_list();
 			break;
 
 		case 'j':
@@ -149,6 +156,7 @@ void get_input(void)
 			}
 			else if (chooser_input < ((gint)sink_list_get(chooser_sink)->input_list->len - 1))
 				++chooser_input;
+			print_sink_list();
 			break;
 
 		case 'h':
@@ -192,7 +200,7 @@ void get_input(void)
 			);
 
 			pa_operation_unref(tmp.volume_set(context, tmp.index, &tmp.volume, change_callback, NULL));
-			return;
+			break;
 		case 'm':
 		case 'M': {
 			struct tmp_t {
@@ -218,7 +226,7 @@ void get_input(void)
 				break;
 
 			pa_operation_unref(tmp.mute_set(context, tmp.index, !tmp.mute, change_callback, NULL));
-			return;
+			break;
 		}
 		case '\n':
 		case ' ':
@@ -234,7 +242,7 @@ void get_input(void)
 			pa_operation_unref(pa_context_move_sink_input_by_index(context, selected_index,
 						sink_list_get(chooser_sink)->index,
 						change_callback, NULL));
-			return;
+			break;
 
 		case 'q':
 		default:
@@ -242,7 +250,6 @@ void get_input(void)
 			quit();
 			break;
 	}
-	collect_all_info();
 }
 
 void interface_clear(void)

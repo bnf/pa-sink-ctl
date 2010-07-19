@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <glib.h>
 
@@ -20,9 +21,13 @@
 #define HEIGHT 10
 
 GArray *sink_list = NULL;
+GArray *sink_list_tmp = NULL;
 
 pa_mainloop_api *mainloop_api = NULL;
 pa_context      *context      = NULL;
+
+bool info_callbacks_finished = true;
+bool state_callback_pending = false;
 
 int main(int argc, char** argv)
 {
@@ -34,7 +39,7 @@ int main(int argc, char** argv)
 
 	interface_init();
 
-	g_context = g_main_context_new();
+	g_context = g_main_context_default();
 	g_loop    = g_main_loop_new(g_context, false);
 
 	if (!(m = pa_glib_mainloop_new(g_context))) {
@@ -64,6 +69,21 @@ int main(int argc, char** argv)
 
 	return 0;
 }
+
+static void subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
+{
+	if (!info_callbacks_finished)
+		state_callback_pending = true;
+	else
+		collect_all_info();
+}
+
+static int loop(gpointer data)
+{
+	get_input();
+	return true;
+}
+
 /*
  * is called after connection
  */
@@ -71,20 +91,18 @@ void context_state_callback(pa_context *c, void *userdata)
 {
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_CONNECTING:
-//			printf("connecting...\n");
-			break;
-
 		case PA_CONTEXT_AUTHORIZING:
-//			printf("authorizing...\n");
-			break;
-
 		case PA_CONTEXT_SETTING_NAME:
-//			printf("setting name\n");
 			break;
 
 		case PA_CONTEXT_READY:
-//			printf("Menue\n");
 			collect_all_info();
+			g_timeout_add(3, loop, NULL);
+			pa_context_set_subscribe_callback(context, subscribe_cb, NULL);
+			pa_operation *o;
+			g_assert((o = pa_context_subscribe(c, (pa_subscription_mask_t) (
+					PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT
+					), NULL, NULL)));
 			break;
 
 		default:
@@ -108,7 +126,7 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 		return;
 	}
 
-	g_array_append_val(sink_list, ((sink_info) {
+	g_array_append_val(sink_list_tmp, ((sink_info) {
 		.index = i->index,
 		.mute  = i->mute,
 		.vol   = pa_cvolume_avg(&i->volume),
@@ -133,8 +151,16 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	}
 
 	if (is_last) {
+		info_callbacks_finished = true;
+		sink_list_free(sink_list);
+		sink_list = sink_list_tmp;
+
 		print_sink_list();
-		get_input(); 
+
+		if (state_callback_pending) {
+			state_callback_pending = false;
+			collect_all_info();
+		}
 		return;
 	}
 
@@ -143,7 +169,7 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 	snprintf(t, sizeof(t), "%u", i->owner_module);
 	snprintf(k, sizeof(k), "%u", i->client);
 
-	g_array_append_val(sink_list_get(i->sink)->input_list, ((sink_input_info) {
+	g_array_append_val(g_array_index(sink_list_tmp, sink_info, i->sink).input_list, ((sink_input_info) {
 		.index = i->index,
 		.sink = i->sink,
 		.name = strdup(pa_proplist_gets(i->proplist, "application.name")),
@@ -166,12 +192,15 @@ void quit(void)
  */
 void change_callback(pa_context* c, int success, void* userdate)
 {
-	collect_all_info();
+	print_sink_list();
 }
 
 void collect_all_info(void)
 {
-	sink_list_free(sink_list);
-	sink_list = sink_list_alloc();
+	if (!info_callbacks_finished)
+		return;
+	info_callbacks_finished = false;
+
+	sink_list_tmp = sink_list_alloc();
 	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));
 }
