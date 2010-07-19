@@ -33,6 +33,7 @@ void interface_init(void)
 	noecho();
 	cbreak();	/* Line buffering disabled. pass on everything */
 	
+	// 0,0,0,0 means fullscreen
 	menu_win = newwin(0, 0, 0, 0);
 	nodelay(menu_win, TRUE); /* important! make wgetch non-blocking */
 	keypad(menu_win, TRUE);
