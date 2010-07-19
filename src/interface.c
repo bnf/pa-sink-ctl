@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <signal.h>
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 #include <ncurses.h>
@@ -23,6 +24,18 @@ extern GArray *sink_list;
 
 extern pa_context* context;
 
+void resize(int signal);
+
+void foo(void)
+{
+	signal(SIGWINCH, resize);
+}
+void resize(int signal)
+{
+	foo();
+	interface_resize();
+}
+
 void interface_init(void)
 {
 	chooser_sink = 0;
@@ -39,6 +52,7 @@ void interface_init(void)
 	keypad(menu_win, TRUE);
 	curs_set(0); /* hide cursor */
 	mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
+	signal(SIGWINCH, resize);
 	refresh();
 }
 
