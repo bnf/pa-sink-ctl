@@ -60,6 +60,11 @@ void interface_resize(void)
 {
 	getmaxyx(stdscr, height, width);
 	wresize(menu_win, height, width);
+
+	wclear(stdscr);
+	wclear(menu_win);
+	
+	print_sink_list();
 }
 
 void print_sink_list(void)
