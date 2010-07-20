@@ -1,11 +1,15 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
 #include <signal.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 #include <ncurses.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
 
 #include "interface.h"
 #include "sink.h"
@@ -26,14 +30,29 @@ extern pa_context* context;
 
 void resize(int signal);
 
-void foo(void)
+bool resize_running = false;
+bool resize_pending = false;
+
+static void set_resize_callback(void)
 {
 	signal(SIGWINCH, resize);
 }
+
 void resize(int signal)
 {
-	foo();
-	interface_resize();
+	set_resize_callback();
+
+	if (resize_running) {
+		resize_pending = true;
+		return;
+	}
+
+	resize_running = true;
+	do {
+		resize_pending = false;
+		interface_resize();
+	} while (resize_pending);
+	resize_running = false;
 }
 
 void interface_init(void)
@@ -52,18 +71,24 @@ void interface_init(void)
 	keypad(menu_win, TRUE);
 	curs_set(0); /* hide cursor */
 	mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
-	signal(SIGWINCH, resize);
+	set_resize_callback();
 	refresh();
 }
 
 void interface_resize(void)
 {
-	getmaxyx(stdscr, height, width);
+	struct winsize wsize = (struct winsize) { 0 };
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize) >= 0) {
+		height = wsize.ws_row;
+		width  = wsize.ws_col;
+	}
+
+	resize_term(height, width);
+	clear();
+	refresh();
+
 	wresize(menu_win, height, width);
 
-	wclear(stdscr);
-	wclear(menu_win);
-	
 	print_sink_list();
 }
 
