@@ -75,7 +75,7 @@ void interface_init(void)
 	curs_set(0); /* hide cursor */
 	mvwprintw(msg_win, 0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
 	// resize the windows into the correct form
-//	interface_resize();
+	interface_resize();
 	set_resize_callback();
 	refresh();
 }
@@ -94,7 +94,7 @@ void interface_resize(void)
 
 	wresize(menu_win, height - H_MSG_BOX, width);
 	wresize(msg_win, H_MSG_BOX, width);
-	wmove(msg_win, height - H_MSG_BOX, 0);
+	mvwin(msg_win, height - H_MSG_BOX, 0);
 
 	print_sink_list();
 }
@@ -106,11 +106,13 @@ void print_sink_list(void)
 	int y = 2;
 	int offset = 0;
 		
-	werase(menu_win);
 	werase(msg_win);
-	box(menu_win, 0, 0);
 	box(msg_win, 0, 0);
-	mvwprintw(msg_win, 0, 0, "Test!");
+	mvwprintw(msg_win, 1, 1, "Test!");
+	wrefresh(msg_win);
+
+	werase(menu_win);
+	box(menu_win, 0, 0);
 
 	/* derive chooser_input from selected_index (this is set when input is moved) */
 	if (chooser_input == -2) {
