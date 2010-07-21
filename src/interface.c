@@ -16,9 +16,11 @@
 #include "pa-sink-ctl.h"
 
 #define VOLUME_BAR_LEN 50
+#define H_MSG_BOX 3
 
 // ncurses
 WINDOW *menu_win;
+WINDOW *msg_win;
 int height;
 int width;
 int chooser_sink;
@@ -67,10 +69,13 @@ void interface_init(void)
 	
 	// 0,0,0,0 means fullscreen
 	menu_win = newwin(0, 0, 0, 0);
+	msg_win  = newwin(0, 0, 0, 0);
 	nodelay(menu_win, TRUE); /* important! make wgetch non-blocking */
 	keypad(menu_win, TRUE);
 	curs_set(0); /* hide cursor */
-	mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
+	mvwprintw(msg_win, 0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
+	// resize the windows into the correct form
+//	interface_resize();
 	set_resize_callback();
 	refresh();
 }
@@ -87,7 +92,9 @@ void interface_resize(void)
 	clear();
 	refresh();
 
-	wresize(menu_win, height, width);
+	wresize(menu_win, height - H_MSG_BOX, width);
+	wresize(msg_win, H_MSG_BOX, width);
+	wmove(msg_win, height - H_MSG_BOX, 0);
 
 	print_sink_list();
 }
@@ -100,7 +107,10 @@ void print_sink_list(void)
 	int offset = 0;
 		
 	werase(menu_win);
+	werase(msg_win);
 	box(menu_win, 0, 0);
+	box(msg_win, 0, 0);
+	mvwprintw(msg_win, 0, 0, "Test!");
 
 	/* derive chooser_input from selected_index (this is set when input is moved) */
 	if (chooser_input == -2) {
