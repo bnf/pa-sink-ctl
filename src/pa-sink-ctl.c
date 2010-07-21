@@ -1,33 +1,22 @@
-#define _XOPEN_SOURCE 500
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
 
 #include <glib.h>
-
 #include <pulse/pulseaudio.h>
 #include <pulse/glib-mainloop.h>
-
-#include <ncurses.h>
 
 #include "sink_input.h"
 #include "sink.h"
 #include "interface.h"
 #include "pa-sink-ctl.h"
 
-#define VOLUME_BAR_LEN 50
-#define WIDTH 80
-#define HEIGHT 10
-
-GArray *sink_list = NULL;
+GArray *sink_list     = NULL;
 GArray *sink_list_tmp = NULL;
 
 pa_mainloop_api *mainloop_api = NULL;
 pa_context      *context      = NULL;
 
-bool info_callbacks_finished = true;
-bool state_callback_pending = false;
+gboolean info_callbacks_finished = TRUE;
+gboolean state_callback_pending = FALSE;
 
 int main(int argc, char** argv)
 {
@@ -40,7 +29,7 @@ int main(int argc, char** argv)
 	interface_init();
 
 	g_context = g_main_context_default();
-	g_loop    = g_main_loop_new(g_context, false);
+	g_loop    = g_main_loop_new(g_context, FALSE);
 
 	if (!(m = pa_glib_mainloop_new(g_context))) {
 		printf("error: pa_glib_mainloop_new() failed.\n");
@@ -70,10 +59,10 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-static void subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
+static void subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 idx, gpointer userdata)
 {
 	if (!info_callbacks_finished)
-		state_callback_pending = true;
+		state_callback_pending = TRUE;
 	else
 		collect_all_info();
 }
@@ -81,13 +70,13 @@ static void subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t
 static int loop(gpointer data)
 {
 	get_input();
-	return true;
+	return TRUE;
 }
 
 /*
  * is called after connection
  */
-void context_state_callback(pa_context *c, void *userdata)
+void context_state_callback(pa_context *c, gpointer userdata)
 {
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_CONNECTING:
@@ -114,7 +103,7 @@ void context_state_callback(pa_context *c, void *userdata)
 /*
  * the begin of the callback loops
  */
-void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, void *userdata)
+void get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpointer userdata)
 {
 	if (is_last < 0) {
 		printf("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
@@ -131,9 +120,9 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 		.mute  = i->mute,
 		.vol   = pa_cvolume_avg(&i->volume),
 		.channels = i->volume.channels,
-		.name = strdup(i->name),
+		.name = g_strdup(i->name),
 		.device = pa_proplist_contains(i->proplist, "device.product.name") ? 
-			strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
+			g_strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
 		.input_list = sink_input_list_alloc()
 	}));
 }
@@ -141,24 +130,22 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, int is_last, v
 /*
  * is called after sink-input
  */
-void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, int is_last, void *userdata)
+void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is_last, gpointer userdata)
 {
-	char t[32], k[32];
-
 	if (is_last < 0) {
 		printf("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
 		return;
 	}
 
 	if (is_last) {
-		info_callbacks_finished = true;
+		info_callbacks_finished = TRUE;
 		sink_list_free(sink_list);
 		sink_list = sink_list_tmp;
 
 		print_sink_list();
 
 		if (state_callback_pending) {
-			state_callback_pending = false;
+			state_callback_pending = FALSE;
 			collect_all_info();
 		}
 		return;
@@ -166,13 +153,10 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, in
 
 	if (!(i->client != PA_INVALID_INDEX)) return;
 
-	snprintf(t, sizeof(t), "%u", i->owner_module);
-	snprintf(k, sizeof(k), "%u", i->client);
-
 	g_array_append_val(g_array_index(sink_list_tmp, sink_info, i->sink).input_list, ((sink_input_info) {
 		.index = i->index,
 		.sink = i->sink,
-		.name = strdup(pa_proplist_gets(i->proplist, "application.name")),
+		.name = g_strdup(pa_proplist_gets(i->proplist, "application.name")),
 		.mute = i->mute,
 		.channels = i->volume.channels,
 		.vol = pa_cvolume_avg(&i->volume),
@@ -190,7 +174,7 @@ void quit(void)
 /*
  * is called, after user input
  */
-void change_callback(pa_context* c, int success, void* userdate)
+void change_callback(pa_context* c, gint success, gpointer userdata)
 {
 	return;
 }
@@ -199,7 +183,7 @@ void collect_all_info(void)
 {
 	if (!info_callbacks_finished)
 		return;
-	info_callbacks_finished = false;
+	info_callbacks_finished = FALSE;
 
 	sink_list_tmp = sink_list_alloc();
 	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));

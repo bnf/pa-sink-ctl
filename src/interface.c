@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-
 #include <signal.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -18,48 +13,49 @@
 #define VOLUME_BAR_LEN 50
 #define H_MSG_BOX 3
 
-// ncurses
-WINDOW *menu_win;
-WINDOW *msg_win;
-int height;
-int width;
-int chooser_sink;
-int chooser_input;
-uint32_t selected_index;
-
 extern GArray *sink_list;
 extern pa_context* context;
 
-void resize(int signal);
+WINDOW *menu_win;
+WINDOW *msg_win;
 
-bool resize_running = false;
-bool resize_pending = false;
+gint height;
+gint width;
+
+gint chooser_sink;
+gint chooser_input;
+guint32 selected_index;
+
+gboolean resize_running = FALSE;
+gboolean resize_pending = FALSE;
+
+static void resize(gint signal);
 
 static void set_resize_callback(void)
 {
 	signal(SIGWINCH, resize);
 }
 
-void resize(int signal)
+static void resize(gint signal)
 {
 	set_resize_callback();
 
 	if (resize_running) {
-		resize_pending = true;
+		resize_pending = TRUE;
 		return;
 	}
 
-	resize_running = true;
+	resize_running = TRUE;
 	do {
-		resize_pending = false;
+		resize_pending = FALSE;
 		interface_resize();
 	} while (resize_pending);
-	resize_running = false;
+	resize_running = FALSE;
 }
 
 void interface_init(void)
 {
-	chooser_sink = 0;
+	chooser_sink  =  0;
 	chooser_input = -1;
 	
 	initscr();
@@ -101,10 +97,10 @@ void interface_resize(void)
 
 void print_sink_list(void)
 {
-	int i = 0;
-	int x = 2;
-	int y = 2;
-	int offset = 0;
+	gint i = 0;
+	gint x = 2;
+	gint y = 2;
+	gint offset = 0;
 		
 	werase(msg_win);
 	box(msg_win, 0, 0);
@@ -118,7 +114,7 @@ void print_sink_list(void)
 	if (chooser_input == -2) {
 		chooser_input = -1; /* if index is going to be not found, select the sink itself */
 		/* step through inputs for current sink and find the selected */
-		for (int i = 0; i < sink_list_get(chooser_sink)->input_list->len; ++i) {
+		for (i = 0; i < sink_list_get(chooser_sink)->input_list->len; ++i) {
 			if (selected_index == sink_input_get(chooser_sink, i)->index) {
 				chooser_input = i;
 				break;
@@ -146,13 +142,14 @@ void print_sink_list(void)
 	wrefresh(menu_win);
 }
 
-void print_input_list(int sink_num)
+void print_input_list(gint sink_num)
 {
-	int offset = sink_num + 1 + 2;
-	for (int i = 0; i < sink_num; ++i)
+	gint offset = sink_num + 1 + 2;
+
+	for (gint i = 0; i < sink_num; ++i)
 		offset += sink_list_get(i)->input_list->len;
 
-	for (int i = 0; i < sink_list_get(sink_num)->input_list->len; ++i) {
+	for (gint i = 0; i < sink_list_get(sink_num)->input_list->len; ++i) {
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattron(menu_win, A_REVERSE);
 
@@ -168,26 +165,26 @@ void print_input_list(int sink_num)
 
 void print_volume(pa_volume_t volume, int mute, int y)
 {
-	int x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
+	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
 		1 /* space */ + 13 /* input name*/ + 1 /* space */;
 
-	int vol = (int) (VOLUME_BAR_LEN * volume / PA_VOLUME_NORM);
+	gint vol = (gint) (VOLUME_BAR_LEN * volume / PA_VOLUME_NORM);
 
 	mvwprintw(menu_win, y, x - 1, "[%c]", mute ? 'M' : ' ');
 	x += 3;
+
 	mvwprintw(menu_win, y, x - 1 , "[");
-	for (int i = 0; i < vol; ++i)
+	for (gint i = 0; i < vol; ++i)
 		mvwprintw(menu_win, y, x + i, "=");
-	for (int i = vol; i < VOLUME_BAR_LEN; ++i)
+	for (gint i = vol; i < VOLUME_BAR_LEN; ++i)
 		mvwprintw(menu_win, y, x + i, " ");
-	
 	mvwprintw(menu_win, y, x + VOLUME_BAR_LEN, "]");
 }
 
 void get_input(void)
 {
-	int c;
-	bool volume_increment = true;
+	gint c;
+	gboolean volume_increment = TRUE;
 
 	c = wgetch(menu_win);
 	switch (c) {
@@ -220,15 +217,15 @@ void get_input(void)
 
 		case 'h':
 		case KEY_LEFT:
-			volume_increment = false;
+			volume_increment = FALSE;
 			/* fall through */
 		case 'l':
 		case KEY_RIGHT: {
 			struct tmp_t {
-				uint32_t index;
+				guint32 index;
 				pa_cvolume volume;
 				pa_volume_t tmp_vol;
-				pa_operation* (*volume_set) (pa_context*, uint32_t, const pa_cvolume*, pa_context_success_cb_t, void*);
+				pa_operation* (*volume_set) (pa_context*, guint32, const pa_cvolume*, pa_context_success_cb_t, gpointer);
 			} tmp;
 
 			if (chooser_input >= 0) {
@@ -265,11 +262,12 @@ void get_input(void)
 			pa_operation_unref(tmp.volume_set(context, tmp.index, &tmp.volume, change_callback, NULL));
 			break;
 		}
+
 		case 'm':
 		case 'M': {
 			struct tmp_t {
-				uint32_t index;
-				int mute;
+				guint32 index;
+				gint mute;
 				pa_operation* (*mute_set) (pa_context*, uint32_t, int, pa_context_success_cb_t, void*);
 			} tmp;
 
@@ -293,6 +291,7 @@ void get_input(void)
 			pa_operation_unref(tmp.mute_set(context, tmp.index, !tmp.mute, change_callback, NULL));
 			break;
 		}
+
 		case '\n':
 		case ' ':
 			if (chooser_input == -1)

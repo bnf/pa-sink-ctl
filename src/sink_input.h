@@ -1,18 +1,16 @@
 #ifndef SINK_INPUT_H
 #define SINK_INPUT_H
 
-#include <stdint.h>
-
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 
 typedef struct _sink_input_info {
-	uint32_t index;
-	uint32_t sink;
-	char *name;
-	char *pid;	// maybe useless?!!?
-	int mute;
-	uint8_t channels;
+	guint32 index;
+	guint32 sink;
+	gchar *name;
+	gchar *pid;	// maybe useless?!!?
+	gint mute;
+	guint8 channels;
 	pa_volume_t vol; // TOTO: exchange with the channel-list
 } sink_input_info;
 
