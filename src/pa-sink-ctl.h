@@ -12,12 +12,7 @@
 #include "sink.h"
 #include "interface.h"
 
-#define VOLUME_MIN ((intmax_t) PA_VOLUME_MUTED)
-#define VOLUME_MAX ((intmax_t) PA_VOLUME_NORM)
-
 #define VOLUME_BAR_LEN 50
-#define WIDTH 80
-#define HEIGHT 10
 
 void context_state_callback(pa_context*, void *);
 void get_sink_info_callback(pa_context *, const pa_sink_info *, int, void *);

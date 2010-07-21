@@ -25,7 +25,7 @@ int height;
 int width;
 int chooser_sink;
 int chooser_input;
-int selected_index;
+uint32_t selected_index;
 
 extern GArray *sink_list;
 extern pa_context* context;
@@ -82,7 +82,7 @@ void interface_init(void)
 
 void interface_resize(void)
 {
-	struct winsize wsize = (struct winsize) { 0 };
+	struct winsize wsize;
 	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize) >= 0) {
 		height = wsize.ws_row;
 		width  = wsize.ws_col;
@@ -129,14 +129,14 @@ void print_sink_list(void)
 		if (i == chooser_sink && chooser_input == -1)
 			wattron(menu_win, A_REVERSE);
 
-		mvwprintw(menu_win, y+i+offset, x, "%2d %-13s",
+		mvwprintw(menu_win, y+i+offset, x, "%2u %-13s",
 			sink_list_get(i)->index,
 			sink_list_get(i)->device != NULL ? sink_list_get(i)->device : sink_list_get(i)->name);
 		
 		if (i == chooser_sink && chooser_input == -1)
 			wattroff(menu_win, A_REVERSE);
 		print_volume(sink_list_get(i)->vol, sink_list_get(i)->mute, y+i+offset);
-		
+
 		print_input_list(i);
 
 		offset += sink_list_get(i)->input_list->len;
@@ -169,7 +169,8 @@ void print_volume(pa_volume_t volume, int mute, int y)
 	int x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
 		1 /* space */ + 13 /* input name*/ + 1 /* space */;
 
-	unsigned int vol = (unsigned int) ( (((double)volume) / ((double)VOLUME_MAX)) * VOLUME_BAR_LEN );
+	int vol = (int) (VOLUME_BAR_LEN * volume / PA_VOLUME_NORM);
+
 	mvwprintw(menu_win, y, x - 1, "[%c]", mute ? 'M' : ' ');
 	x += 3;
 	mvwprintw(menu_win, y, x - 1 , "[");
@@ -184,7 +185,7 @@ void print_volume(pa_volume_t volume, int mute, int y)
 void get_input(void)
 {
 	int c;
-	int volume_mult = 0;
+	bool volume_increment = true;
 
 	c = wgetch(menu_win);
 	switch (c) {
@@ -217,15 +218,12 @@ void get_input(void)
 
 		case 'h':
 		case KEY_LEFT:
-			volume_mult = -1;
+			volume_increment = false;
 			/* fall through */
 		case 'l':
-		case KEY_RIGHT:
-			if (volume_mult == 0)
-				volume_mult = 1;
-
+		case KEY_RIGHT: {
 			struct tmp_t {
-				int index;
+				uint32_t index;
 				pa_cvolume volume;
 				pa_volume_t tmp_vol;
 				pa_operation* (*volume_set) (pa_context*, uint32_t, const pa_cvolume*, pa_context_success_cb_t, void*);
@@ -250,17 +248,26 @@ void get_input(void)
 			} else
 				break;
 
-			pa_cvolume_set(&tmp.volume, tmp.volume.channels,
-				CLAMP(tmp.tmp_vol + 2 * volume_mult * (VOLUME_MAX / 100),
-					VOLUME_MIN, VOLUME_MAX) /* force vol in [0, VOL_MAX] */
-			);
+			pa_cvolume_set(&tmp.volume, tmp.volume.channels, tmp.tmp_vol);
+			pa_volume_t inc = 2 * PA_VOLUME_NORM / 100;
+
+			if (volume_increment)
+				if (PA_VOLUME_NORM > tmp.tmp_vol && PA_VOLUME_NORM - tmp.tmp_vol > inc)
+					pa_cvolume_inc(&tmp.volume, inc);
+				else
+					pa_cvolume_set(&tmp.volume, tmp.volume.channels, PA_VOLUME_NORM);
+			else
+				pa_cvolume_dec(&tmp.volume, inc);
+
 
 			pa_operation_unref(tmp.volume_set(context, tmp.index, &tmp.volume, change_callback, NULL));
 			break;
+		}
 		case 'm':
 		case 'M': {
 			struct tmp_t {
-				int index, mute;
+				uint32_t index;
+				int mute;
 				pa_operation* (*mute_set) (pa_context*, uint32_t, int, pa_context_success_cb_t, void*);
 			} tmp;
 
