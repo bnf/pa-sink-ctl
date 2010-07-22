@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 #include <pulse/glib-mainloop.h>
@@ -28,21 +26,24 @@ int main(int argc, char** argv)
 	interface_init();
 
 	if (!(m = pa_glib_mainloop_new(NULL))) {
-		printf("error: pa_glib_mainloop_new() failed.\n");
+		interface_clear();
+		g_printerr("error: pa_glib_mainloop_new() failed.\n");
 		return -1;
 	}
 
 	mainloop_api = pa_glib_mainloop_get_api(m);
 
 	if (!(context = pa_context_new(mainloop_api, "pa-sink-ctl"))) {
-		printf("error: pa_context_new() failed.\n");
+		interface_clear();
+		g_printerr("error: pa_context_new() failed.\n");
 		return -1;
 	}
 	
 	// define callback for connection init
 	pa_context_set_state_callback(context, context_state_callback, g_loop);
 	if (pa_context_connect(context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL)) {
-		printf("error: pa_context_connect() failed.\n");
+		interface_clear();
+		g_printerr("error: pa_context_connect() failed.\n");
 	}
 
 	g_main_loop_run(g_loop);
@@ -121,7 +122,7 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, 
 	GArray *sink_list_tmp = userdata;
 
 	if (is_last < 0) {
-		printf("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
+		g_printerr("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
 		quit();
 	}
 
@@ -150,7 +151,7 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gi
 	GArray *sink_list_tmp = userdata;
 
 	if (is_last < 0) {
-		printf("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
+		g_printerr("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
 		return;
 	}
 
