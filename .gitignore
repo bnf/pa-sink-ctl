@@ -2,7 +2,7 @@
 .depend
 
 # executable
-pa_sink_ctl
+pa-sink-ctl
 # objects
 *.o
 
@@ -24,8 +24,7 @@ config.sub
 configure
 
 # The include directory artifacts
-config.h
-config.h.in
+config.h*
 stamp-h1
 
 # Various scripts used for libtool and the like
