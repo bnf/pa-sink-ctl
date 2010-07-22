@@ -47,7 +47,10 @@ int main(int argc, char** argv)
 
 	g_main_loop_run(g_loop);
 
-	printf("main loop quit\n");
+	sink_list_free(sink_list);
+	interface_clear();
+
+	//printf("main loop quit\n");
 
 	pa_glib_mainloop_free(m);
 	g_main_loop_unref(g_loop);
@@ -76,8 +79,13 @@ void context_state_callback(pa_context *c, gpointer userdata)
 {
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_CONNECTING:
+			status("connecting...");
+			break;
 		case PA_CONTEXT_AUTHORIZING:
+			status("authorizing...");
+			break;
 		case PA_CONTEXT_SETTING_NAME:
+			status("setting name...");
 			break;
 
 		case PA_CONTEXT_READY:
@@ -88,14 +96,19 @@ void context_state_callback(pa_context *c, gpointer userdata)
 			g_assert((o = pa_context_subscribe(c, (pa_subscription_mask_t) (
 					PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT
 					), NULL, NULL)));
+			status("ready to process events.");
+			break;
+		case PA_CONTEXT_FAILED:
+			status("cannot connect!");
 			break;
 
 		case PA_CONTEXT_TERMINATED:
-			printf("pulse connection terminated\n");
+			status("connection terminated.");
+			//printf("pulse connection terminated\n");
 			g_main_loop_quit((GMainLoop *)userdata);
 			break;
 		default:
-			printf("unknown state\n");
+			status("unknown state");
 			break;
 	}
 }
@@ -170,8 +183,6 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gi
 
 void quit(void)
 {
-	sink_list_free(sink_list);
-	interface_clear();
 	pa_context_disconnect(context);
 }
 

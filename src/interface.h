@@ -11,5 +11,6 @@ void get_input(void);
 void interface_init(void);
 void interface_resize(void);
 void interface_clear(void);
+void status(gchar *);
 
 #endif

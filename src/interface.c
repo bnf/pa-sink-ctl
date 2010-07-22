@@ -60,15 +60,16 @@ void interface_init(void)
 	
 	initscr();
 	clear();
+
 	noecho();
 	cbreak();	/* Line buffering disabled. pass on everything */
+	curs_set(0); /* hide cursor */
 	
 	// 0,0,0,0 means fullscreen
 	menu_win = newwin(0, 0, 0, 0);
 	msg_win  = newwin(0, 0, 0, 0);
 	nodelay(menu_win, TRUE); /* important! make wgetch non-blocking */
 	keypad(menu_win, TRUE);
-	curs_set(0); /* hide cursor */
 	mvwprintw(msg_win, 0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
 	// resize the windows into the correct form
 	interface_resize();
@@ -92,6 +93,7 @@ void interface_resize(void)
 	wresize(msg_win, H_MSG_BOX, width);
 	mvwin(msg_win, height - H_MSG_BOX, 0);
 
+	status(NULL);
 	print_sink_list();
 }
 
@@ -102,11 +104,6 @@ void print_sink_list(void)
 	gint y = 2;
 	gint offset = 0;
 		
-	werase(msg_win);
-	box(msg_win, 0, 0);
-	mvwprintw(msg_win, 1, 1, "Test!");
-	wrefresh(msg_win);
-
 	werase(menu_win);
 	box(menu_win, 0, 0);
 
@@ -310,7 +307,6 @@ void get_input(void)
 
 		case 'q':
 		default:
-			printf("key: %d\n", c);
 			quit();
 			break;
 	}
@@ -318,7 +314,21 @@ void get_input(void)
 
 void interface_clear(void)
 {
-	clrtoeol();
+	clear();
 	refresh();
 	endwin();
+}
+
+void status(gchar *msg) {
+	static gchar *save = NULL;
+	if (msg != NULL) {
+		g_free(save);
+		save = g_strdup(msg);
+	}
+	werase(msg_win);
+	box(msg_win, 0, 0);
+	if (save != NULL)
+		mvwprintw(msg_win, 1, 1, save);
+	wrefresh(msg_win);
+	refresh();
 }
