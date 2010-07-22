@@ -10,7 +10,6 @@
 #include "pa-sink-ctl.h"
 
 GArray *sink_list     = NULL;
-GArray *sink_list_tmp = NULL;
 
 pa_mainloop_api *mainloop_api = NULL;
 pa_context      *context      = NULL;
@@ -105,13 +104,15 @@ void context_state_callback(pa_context *c, gpointer userdata)
  */
 void get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpointer userdata)
 {
+	GArray *sink_list_tmp = userdata;
+
 	if (is_last < 0) {
 		printf("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
 		quit();
 	}
 
 	if (is_last) {
-		pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, NULL));
+		pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, sink_list_tmp));
 		return;
 	}
 
@@ -132,6 +133,8 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, 
  */
 void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is_last, gpointer userdata)
 {
+	GArray *sink_list_tmp = userdata;
+
 	if (is_last < 0) {
 		printf("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
 		return;
@@ -184,7 +187,5 @@ void collect_all_info(void)
 	if (!info_callbacks_finished)
 		return;
 	info_callbacks_finished = FALSE;
-
-	sink_list_tmp = sink_list_alloc();
-	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, NULL));
+	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, sink_list_alloc()));
 }
