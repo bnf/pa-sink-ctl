@@ -19,18 +19,15 @@ gboolean state_callback_pending = FALSE;
 
 int main(int argc, char** argv)
 {
-	GMainContext *g_context = NULL;
-	GMainLoop    *g_loop    = NULL;
 	pa_glib_mainloop *m = NULL;
 
 	sink_list = sink_list_alloc();
 
+	GMainLoop *g_loop = g_main_loop_new(NULL, FALSE);
+
 	interface_init();
 
-	g_context = g_main_context_default();
-	g_loop    = g_main_loop_new(g_context, FALSE);
-
-	if (!(m = pa_glib_mainloop_new(g_context))) {
+	if (!(m = pa_glib_mainloop_new(NULL))) {
 		printf("error: pa_glib_mainloop_new() failed.\n");
 		return -1;
 	}
@@ -43,17 +40,17 @@ int main(int argc, char** argv)
 	}
 	
 	// define callback for connection init
-	pa_context_set_state_callback(context, context_state_callback, NULL);
+	pa_context_set_state_callback(context, context_state_callback, g_loop);
 	if (pa_context_connect(context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL)) {
 		printf("error: pa_context_connect() failed.\n");
 	}
 
 	g_main_loop_run(g_loop);
 
-	pa_glib_mainloop_free(m);
+	printf("main loop quit\n");
 
+	pa_glib_mainloop_free(m);
 	g_main_loop_unref(g_loop);
-	g_main_context_unref(g_context);
 
 	return 0;
 }
@@ -93,6 +90,10 @@ void context_state_callback(pa_context *c, gpointer userdata)
 					), NULL, NULL)));
 			break;
 
+		case PA_CONTEXT_TERMINATED:
+			printf("pulse connection terminated\n");
+			g_main_loop_quit((GMainLoop *)userdata);
+			break;
 		default:
 			printf("unknown state\n");
 			break;
@@ -171,7 +172,7 @@ void quit(void)
 {
 	sink_list_free(sink_list);
 	interface_clear();
-	exit(0);
+	pa_context_disconnect(context);
 }
 
 /*

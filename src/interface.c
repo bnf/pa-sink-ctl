@@ -321,5 +321,4 @@ void interface_clear(void)
 	clrtoeol();
 	refresh();
 	endwin();
-	exit(0);
 }
