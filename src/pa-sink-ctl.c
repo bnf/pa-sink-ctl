@@ -9,15 +9,15 @@
 
 GArray *sink_list = NULL;
 
-pa_mainloop_api *mainloop_api = NULL;
-pa_context      *context      = NULL;
+pa_context *context = NULL;
 
-gboolean info_callbacks_finished = TRUE;
-gboolean state_callback_pending = FALSE;
+static gboolean info_callbacks_finished = TRUE;
+static gboolean state_callback_pending = FALSE;
 
 int main(int argc, char** argv)
 {
-	pa_glib_mainloop *m = NULL;
+	pa_mainloop_api  *mainloop_api = NULL;
+	pa_glib_mainloop *m            = NULL;
 
 	sink_list = sink_list_alloc();
 

@@ -16,18 +16,15 @@
 extern GArray *sink_list;
 extern pa_context* context;
 
-WINDOW *menu_win;
-WINDOW *msg_win;
+static WINDOW *menu_win;
+static WINDOW *msg_win;
 
-gint height;
-gint width;
+static gint height;
+static gint width;
 
-gint chooser_sink;
-gint chooser_input;
-guint32 selected_index;
-
-gboolean resize_running = FALSE;
-gboolean resize_pending = FALSE;
+static gint chooser_sink;
+static gint chooser_input;
+static guint32 selected_index;
 
 static void resize(gint signal);
 
@@ -38,6 +35,9 @@ static void set_resize_callback(void)
 
 static void resize(gint signal)
 {
+	static gboolean resize_running = FALSE;
+	static gboolean resize_pending = FALSE;
+
 	set_resize_callback();
 
 	if (resize_running) {
