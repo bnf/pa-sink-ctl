@@ -14,7 +14,6 @@
 #define VOLUME_BAR_LEN 50
 #define H_MSG_BOX 3
 
-extern GArray *sink_list;
 extern pa_context* context;
 
 static WINDOW *menu_win;

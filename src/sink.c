@@ -1,9 +1,8 @@
 #include <glib.h>
 
-#include "sink_input.h"
+#define SINK_C
 #include "sink.h"
-
-extern GArray *sink_list;
+#include "sink_input.h"
 
 /*
  * init a sink list

@@ -7,8 +7,6 @@
 #include "interface.h"
 #include "pa-sink-ctl.h"
 
-GArray *sink_list = NULL;
-
 pa_context *context = NULL;
 
 static gboolean info_callbacks_finished = TRUE;

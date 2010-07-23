@@ -1,6 +1,12 @@
 #ifndef SINK_H
 #define SINK_H
 
+#ifdef SINK_C
+GArray *sink_list;
+#else
+extern GArray *sink_list;
+#endif
+
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 
