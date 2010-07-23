@@ -30,20 +30,20 @@ static guint32 selected_index;
 static void _resize(gint signal)
 {
 	static gboolean resize_running = FALSE;
-	static gboolean resize_pending = FALSE;
+	static gboolean resize_blocked = FALSE;
 
 	sigaction(SIGWINCH, &(struct sigaction){_resize}, NULL);
 
 	if (resize_running) {
-		resize_pending = TRUE;
+		resize_blocked = TRUE;
 		return;
 	}
 
 	resize_running = TRUE;
 	do {
-		resize_pending = FALSE;
+		resize_blocked = FALSE;
 		interface_resize();
-	} while (resize_pending);
+	} while (resize_blocked);
 	resize_running = FALSE;
 }
 

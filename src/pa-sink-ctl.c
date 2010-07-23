@@ -12,7 +12,7 @@ GArray *sink_list = NULL;
 pa_context *context = NULL;
 
 static gboolean info_callbacks_finished = TRUE;
-static gboolean state_callback_pending = FALSE;
+static gboolean info_callbacks_blocked = FALSE;
 
 int main(int argc, char** argv)
 {
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 static void subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 idx, gpointer userdata)
 {
 	if (!info_callbacks_finished)
-		state_callback_pending = TRUE;
+		info_callbacks_blocked = TRUE;
 	else
 		collect_all_info();
 }
@@ -165,8 +165,8 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gi
 
 		print_sink_list();
 
-		if (state_callback_pending) {
-			state_callback_pending = FALSE;
+		if (info_callbacks_blocked) {
+			info_callbacks_blocked = FALSE;
 			collect_all_info();
 		}
 		return;
