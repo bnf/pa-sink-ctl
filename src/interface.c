@@ -10,6 +10,7 @@
 #include "interface.h"
 #include "sink.h"
 #include "pa-sink-ctl.h"
+#include "g_unix_signal.h"
 
 #define VOLUME_BAR_LEN 50
 #define H_MSG_BOX 3
@@ -19,29 +20,11 @@ extern pa_context* context;
 static WINDOW *menu_win;
 static WINDOW *msg_win;
 
+static guint resize_source_id;
+
 static gint chooser_sink;
 static gint chooser_input;
 static guint32 selected_index;
-
-static void _resize(gint signal)
-{
-	static gboolean resize_running = FALSE;
-	static gboolean resize_blocked = FALSE;
-
-	sigaction(SIGWINCH, &(struct sigaction){_resize}, NULL);
-
-	if (resize_running) {
-		resize_blocked = TRUE;
-		return;
-	}
-
-	resize_running = TRUE;
-	do {
-		resize_blocked = FALSE;
-		interface_resize();
-	} while (resize_blocked);
-	resize_running = FALSE;
-}
 
 void interface_init(void)
 {
@@ -63,12 +46,13 @@ void interface_init(void)
 	keypad(menu_win, TRUE);  /* multichar keys are mapped to one char */
 
 	/* "resizing" here is for initial box positioning and layout */ 
-	_resize(SIGWINCH);
+	interface_resize(NULL);
+	resize_source_id = g_unix_signal_add(SIGWINCH, interface_resize, NULL);
 
 	refresh();
 }
 
-void interface_resize(void)
+gboolean interface_resize(gpointer data)
 {
 	struct winsize wsize;
 	gint height = 80;
@@ -89,6 +73,7 @@ void interface_resize(void)
 
 	status(NULL); /* NULL := display old status */
 	print_sink_list();
+	return TRUE;
 }
 
 void print_sink_list(void)
@@ -312,6 +297,7 @@ void get_input(void)
 
 void interface_clear(void)
 {
+	g_source_remove(resize_source_id);
 	clear();
 	refresh();
 	endwin();

@@ -9,7 +9,7 @@ void print_input_list(gint);
 void print_volume(pa_volume_t, gint, gint);
 void get_input(void);
 void interface_init(void);
-void interface_resize(void);
+gboolean interface_resize(gpointer);
 void interface_clear(void);
 void status(gchar *);
 
