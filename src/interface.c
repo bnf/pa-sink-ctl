@@ -20,9 +20,6 @@ extern pa_context* context;
 static WINDOW *menu_win;
 static WINDOW *msg_win;
 
-static gint height;
-static gint width;
-
 static gint chooser_sink;
 static gint chooser_input;
 static guint32 selected_index;
@@ -51,28 +48,33 @@ void interface_init(void)
 {
 	chooser_sink  =  0;
 	chooser_input = -1;
-	
+
 	initscr();
 	clear();
 
 	noecho();
 	cbreak();    /* Line buffering disabled. pass on everything */
 	curs_set(0); /* hide cursor */
-	
-	// 0,0,0,0 means fullscreen
+
+	/* 0,0,0,0 := fullscreen */
 	menu_win = newwin(0, 0, 0, 0);
 	msg_win  = newwin(0, 0, 0, 0);
+
 	nodelay(menu_win, TRUE); /* important! make wgetch non-blocking */
-	keypad(menu_win, TRUE);
-	mvwprintw(msg_win, 0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
-	// resize the windows into the correct form
+	keypad(menu_win, TRUE);  /* multichar keys are mapped to one char */
+
+	/* "resizing" here is for initial box positioning and layout */ 
 	_resize(SIGWINCH);
+
 	refresh();
 }
 
 void interface_resize(void)
 {
 	struct winsize wsize;
+	gint height = 80;
+	gint width  = 24;
+
 	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize) >= 0) {
 		height = wsize.ws_row;
 		width  = wsize.ws_col;
@@ -86,7 +88,7 @@ void interface_resize(void)
 	wresize(msg_win, H_MSG_BOX, width);
 	mvwin(msg_win, height - H_MSG_BOX, 0);
 
-	status(NULL);
+	status(NULL); /* NULL := display old status */
 	print_sink_list();
 }
 
@@ -113,7 +115,6 @@ void print_sink_list(void)
 	}
 	
 	for (i = 0; i < sink_list->len; ++i) {
-		
 		if (i == chooser_sink && chooser_input == -1)
 			wattron(menu_win, A_REVERSE);
 
@@ -142,9 +143,7 @@ void print_input_list(gint sink_num)
 	for (gint i = 0; i < sink_list_get(sink_num)->input_list->len; ++i) {
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattron(menu_win, A_REVERSE);
-
 		mvwprintw(menu_win, offset + i, 2, "%*s%-*s", 2+1+1, "", 13 - 1, sink_input_get(sink_num, i)->name);
-
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattroff(menu_win, A_REVERSE);
 
@@ -319,7 +318,8 @@ void interface_clear(void)
 	endwin();
 }
 
-void status(gchar *msg) {
+void status(gchar *msg)
+{
 	static gchar *save = NULL;
 	if (msg != NULL) {
 		g_free(save);
