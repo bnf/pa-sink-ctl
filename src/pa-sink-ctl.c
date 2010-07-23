@@ -76,6 +76,7 @@ static int loop(gpointer data)
  */
 void context_state_callback(pa_context *c, gpointer userdata)
 {
+	static pa_operation *o = NULL;
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_CONNECTING:
 			status("connecting...");
@@ -91,7 +92,6 @@ void context_state_callback(pa_context *c, gpointer userdata)
 			collect_all_info();
 			g_timeout_add(3, loop, NULL);
 			pa_context_set_subscribe_callback(context, subscribe_cb, NULL);
-			pa_operation *o;
 			g_assert((o = pa_context_subscribe(c, (pa_subscription_mask_t) (
 					PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT
 					), NULL, NULL)));
@@ -102,6 +102,10 @@ void context_state_callback(pa_context *c, gpointer userdata)
 			break;
 
 		case PA_CONTEXT_TERMINATED:
+			g_assert(o != NULL);
+			pa_operation_cancel(o);
+			pa_operation_unref(o);
+			o = NULL;
 			status("connection terminated.");
 			g_main_loop_quit((GMainLoop *)userdata);
 			break;
@@ -116,6 +120,7 @@ void context_state_callback(pa_context *c, gpointer userdata)
  */
 void get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpointer userdata)
 {
+	g_assert(userdata != NULL);
 	GArray *sink_list_tmp = userdata;
 
 	if (is_last < 0) {
@@ -145,6 +150,7 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, 
  */
 void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is_last, gpointer userdata)
 {
+	g_assert(userdata != NULL);
 	GArray *sink_list_tmp = userdata;
 
 	if (is_last < 0) {
