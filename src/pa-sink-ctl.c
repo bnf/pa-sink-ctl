@@ -7,7 +7,7 @@
 #include "interface.h"
 #include "pa-sink-ctl.h"
 
-GArray *sink_list     = NULL;
+GArray *sink_list = NULL;
 
 pa_mainloop_api *mainloop_api = NULL;
 pa_context      *context      = NULL;
@@ -48,10 +48,8 @@ int main(int argc, char** argv)
 
 	g_main_loop_run(g_loop);
 
-	sink_list_free(sink_list);
 	interface_clear();
-
-	//printf("main loop quit\n");
+	sink_list_free(sink_list);
 
 	pa_glib_mainloop_free(m);
 	g_main_loop_unref(g_loop);
@@ -105,7 +103,6 @@ void context_state_callback(pa_context *c, gpointer userdata)
 
 		case PA_CONTEXT_TERMINATED:
 			status("connection terminated.");
-			//printf("pulse connection terminated\n");
 			g_main_loop_quit((GMainLoop *)userdata);
 			break;
 		default:
