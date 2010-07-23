@@ -12,13 +12,18 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
 # Checks for libraries.
-AC_CHECK_LIB([ncurses], [newwin], [CURSES_LIBS=-lncurses], [echo "Error: you need ncurses!"; exit 1])
-PKG_CHECK_MODULES(PULSE, [libpulse], [], [echo "Error: you need libpulse!"; exit 1])
-PKG_CHECK_MODULES(PULSE_MAINLOOP, [libpulse-mainloop-glib], [], [echo "Error: you need libpulse-mainloop-glib"; exit 1])
-PKG_CHECK_MODULES(GLIB, [glib-2.0], [], [echo "Error: you need glib!"; exit1])
+AC_CHECK_LIB([ncurses], [newwin], [CURSES_LIBS=-lncurses], AC_MSG_ERROR([curses required]))
+
+PKG_CHECK_MODULES(PULSE, [libpulse], [], AC_MSG_ERROR([libpulse required]))
+PKG_CHECK_MODULES(PULSE_MAINLOOP, [libpulse-mainloop-glib], [], AC_MSG_ERROR([libpulse-mainloop-glib required]))
+PKG_CHECK_MODULES(GLIB, [glib-2.0], [], AC_MSG_ERROR([glib required]))
 
 AC_SUBST(CURSES_LIBS)
 
-AC_CHECK_HEADERS([ncurses.h])
+AC_CHECK_HEADERS([ncurses.h sys/ioctl.h unistd.h signal.h])
+
+AC_CHECK_FUNC([sigaction], [], AC_MSG_ERROR([function sigaction() not found]))
+
+AC_C_INLINE
 
 AC_OUTPUT

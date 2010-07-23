@@ -1,5 +1,3 @@
-#define _POSIX_SOURCE
-#include <signal.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 
@@ -38,20 +36,25 @@ void interface_init(void)
 	clear();
 
 	noecho();
-	cbreak();    /* Line buffering disabled. pass on everything */
-	curs_set(0); /* hide cursor */
+	/* Line buffering disabled. pass on everything */
+	cbreak();
+	/* hide cursor */
+	curs_set(0);
 
 	/* 0,0,0,0 := fullscreen */
 	menu_win = newwin(0, 0, 0, 0);
 	msg_win  = newwin(0, 0, 0, 0);
-
-	keypad(menu_win, TRUE); /* multichar keys are mapped to one char */
+	
+	/* multichar keys are mapped to one char */
+	keypad(menu_win, TRUE);
 
 	/* "resizing" here is for initial box positioning and layout */ 
 	interface_resize(NULL);
 
+	/* register event handler for resize and input */
 	resize_source_id = g_unix_signal_add(SIGWINCH, interface_resize, NULL);
 	input_source_id  = g_curses_input_add(menu_win, get_input, NULL);
+	
 	refresh();
 }
 
@@ -73,8 +76,9 @@ gboolean interface_resize(gpointer data)
 	wresize(menu_win, height - H_MSG_BOX, width);
 	wresize(msg_win, H_MSG_BOX, width);
 	mvwin(msg_win, height - H_MSG_BOX, 0);
-
-	status(NULL); /* NULL := display old status */
+	
+	/* NULL := display old status */
+	status(NULL); 
 	print_sink_list();
 	return TRUE;
 }
@@ -91,7 +95,8 @@ void print_sink_list(void)
 
 	/* derive chooser_input from selected_index (this is set when input is moved) */
 	if (chooser_input == -2) {
-		chooser_input = -1; /* if index is going to be not found, select the sink itself */
+		/* if index is will not be found (in the loop), select the sink itself */
+		chooser_input = -1; 
 		/* step through inputs for current sink and find the selected */
 		for (i = 0; i < sink_list_get(chooser_sink)->input_list->len; ++i) {
 			if (selected_index == sink_input_get(chooser_sink, i)->index) {
@@ -246,7 +251,7 @@ gboolean get_input(gpointer data)
 			struct tmp_t {
 				guint32 index;
 				gint mute;
-				pa_operation* (*mute_set) (pa_context*, uint32_t, int, pa_context_success_cb_t, void*);
+				pa_operation* (*mute_set) (pa_context*, guint32, int, pa_context_success_cb_t, void*);
 			} tmp;
 
 			if (chooser_input >= 0) {
@@ -281,7 +286,8 @@ gboolean get_input(gpointer data)
 			else
 				chooser_sink = 0;
 
-			chooser_input = -2; /* chooser_input needs to be derived from $selected_index */
+			/* chooser_input needs to be derived from $selected_index */
+			chooser_input = -2; 
 			pa_operation_unref(pa_context_move_sink_input_by_index(context, selected_index,
 						sink_list_get(chooser_sink)->index,
 						change_callback, NULL));
