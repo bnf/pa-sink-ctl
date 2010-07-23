@@ -10,7 +10,9 @@
 #include "interface.h"
 #include "sink.h"
 #include "pa-sink-ctl.h"
+
 #include "g_unix_signal.h"
+#include "g_curses_input.h"
 
 #define VOLUME_BAR_LEN 50
 #define H_MSG_BOX 3
@@ -21,6 +23,7 @@ static WINDOW *menu_win;
 static WINDOW *msg_win;
 
 static guint resize_source_id;
+static guint input_source_id;
 
 static gint chooser_sink;
 static gint chooser_input;
@@ -42,13 +45,13 @@ void interface_init(void)
 	menu_win = newwin(0, 0, 0, 0);
 	msg_win  = newwin(0, 0, 0, 0);
 
-	nodelay(menu_win, TRUE); /* important! make wgetch non-blocking */
-	keypad(menu_win, TRUE);  /* multichar keys are mapped to one char */
+	keypad(menu_win, TRUE); /* multichar keys are mapped to one char */
 
 	/* "resizing" here is for initial box positioning and layout */ 
 	interface_resize(NULL);
-	resize_source_id = g_unix_signal_add(SIGWINCH, interface_resize, NULL);
 
+	resize_source_id = g_unix_signal_add(SIGWINCH, interface_resize, NULL);
+	input_source_id  = g_curses_input_add(menu_win, get_input, NULL);
 	refresh();
 }
 
@@ -154,17 +157,13 @@ void print_volume(pa_volume_t volume, int mute, int y)
 	mvwprintw(menu_win, y, x + VOLUME_BAR_LEN, "]");
 }
 
-void get_input(void)
+gboolean get_input(gpointer data)
 {
 	gint c;
 	gboolean volume_increment = TRUE;
 
 	c = wgetch(menu_win);
 	switch (c) {
-		case ERR:
-			/* nothing typed in */
-			return;
-
 		case 'k':
 		case 'w':
 		case KEY_UP:
@@ -293,11 +292,13 @@ void get_input(void)
 			quit();
 			break;
 	}
+	return TRUE;
 }
 
 void interface_clear(void)
 {
 	g_source_remove(resize_source_id);
+	g_source_remove(input_source_id);
 	clear();
 	refresh();
 	endwin();

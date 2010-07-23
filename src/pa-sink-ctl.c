@@ -63,12 +63,6 @@ static void subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 
 		collect_all_info();
 }
 
-static int loop(gpointer data)
-{
-	get_input();
-	return TRUE;
-}
-
 /*
  * is called after connection
  */
@@ -88,7 +82,6 @@ void context_state_callback(pa_context *c, gpointer userdata)
 
 		case PA_CONTEXT_READY:
 			collect_all_info();
-			g_timeout_add(3, loop, NULL);
 			pa_context_set_subscribe_callback(context, subscribe_cb, NULL);
 			g_assert((o = pa_context_subscribe(c, (pa_subscription_mask_t) (
 					PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT
