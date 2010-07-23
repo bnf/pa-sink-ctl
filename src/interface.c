@@ -183,6 +183,7 @@ void get_input(void)
 			return;
 
 		case 'k':
+		case 'w':
 		case KEY_UP:
 			if (chooser_input == -1 && chooser_sink > 0) {
 				--chooser_sink;
@@ -195,6 +196,7 @@ void get_input(void)
 			break;
 
 		case 'j':
+		case 's':
 		case KEY_DOWN:
 			if (chooser_input == ((gint)sink_list_get(chooser_sink)->input_list->len - 1) && chooser_sink < (gint)sink_list->len - 1) {
 					++chooser_sink;
@@ -206,10 +208,12 @@ void get_input(void)
 			break;
 
 		case 'h':
+		case 'a':
 		case KEY_LEFT:
 			volume_increment = FALSE;
 			/* fall through */
 		case 'l':
+		case 'd':
 		case KEY_RIGHT: {
 			struct tmp_t {
 				guint32 index;
@@ -253,7 +257,9 @@ void get_input(void)
 			break;
 		}
 
+
 		case 'm':
+		case 'x':
 		case 'M': {
 			struct tmp_t {
 				guint32 index;
@@ -283,6 +289,7 @@ void get_input(void)
 		}
 
 		case '\n':
+		case '\t':
 		case ' ':
 			if (chooser_input == -1)
 				break;
