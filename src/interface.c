@@ -1,3 +1,4 @@
+#define _POSIX_SOURCE
 #include <signal.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -26,19 +27,12 @@ static gint chooser_sink;
 static gint chooser_input;
 static guint32 selected_index;
 
-static void resize(gint signal);
-
-static void set_resize_callback(void)
-{
-	signal(SIGWINCH, resize);
-}
-
-static void resize(gint signal)
+static void _resize(gint signal)
 {
 	static gboolean resize_running = FALSE;
 	static gboolean resize_pending = FALSE;
 
-	set_resize_callback();
+	sigaction(SIGWINCH, &(struct sigaction){_resize}, NULL);
 
 	if (resize_running) {
 		resize_pending = TRUE;
@@ -62,7 +56,7 @@ void interface_init(void)
 	clear();
 
 	noecho();
-	cbreak();	/* Line buffering disabled. pass on everything */
+	cbreak();    /* Line buffering disabled. pass on everything */
 	curs_set(0); /* hide cursor */
 	
 	// 0,0,0,0 means fullscreen
@@ -72,8 +66,7 @@ void interface_init(void)
 	keypad(menu_win, TRUE);
 	mvwprintw(msg_win, 0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
 	// resize the windows into the correct form
-	interface_resize();
-	set_resize_callback();
+	_resize(SIGWINCH);
 	refresh();
 }
 
