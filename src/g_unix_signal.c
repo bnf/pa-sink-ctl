@@ -2,66 +2,66 @@
 #include <signal.h>
 #include <glib.h>
 
-static GPtrArray *signal_infos = NULL;
+static GPtrArray *signal_data = NULL;
 
-typedef struct _GUnixSignalInfo {
+typedef struct _GUnixSignalData {
 	guint source_id;
 	GMainContext *context;
 	gboolean triggered;
 	gint signum;
-} GUnixSignalInfo;
+} GUnixSignalData;
 
 typedef struct _GUnixSignalSource {
 	GSource source;
-	GUnixSignalInfo *info;
+	GUnixSignalData *data;
 } GUnixSignalSource;
 
-static inline GUnixSignalInfo* get_signal_info(guint index)
+static inline GUnixSignalData* get_signal_data(guint index)
 {
-	return (GUnixSignalInfo*)g_ptr_array_index(signal_infos, index);
+	return (GUnixSignalData*)g_ptr_array_index(signal_data, index);
 }
 
 static void handler(gint signum) {
-	g_assert(signal_infos != NULL);
-	for (guint i = 0; i < signal_infos->len; ++i)
-		if (get_signal_info(i)->signum == signum)
-			get_signal_info(i)->triggered = TRUE;
+	g_assert(signal_data != NULL);
+	for (guint i = 0; i < signal_data->len; ++i)
+		if (get_signal_data(i)->signum == signum)
+			get_signal_data(i)->triggered = TRUE;
 	sigaction(signum, &(struct sigaction){handler}, NULL);
 }
 
 static gboolean check(GSource *source)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource*) source;
-	return signal_source->info->triggered;
+	return signal_source->data->triggered;
 }
 
 static gboolean prepare(GSource *source, gint *timeout_)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource*) source;
-	if (signal_source->info->context == NULL) {
-		g_main_context_ref(signal_source->info->context = g_source_get_context(source));
-		signal_source->info->source_id = g_source_get_id(source);
+	if (signal_source->data->context == NULL) {
+		g_main_context_ref(signal_source->data->context = g_source_get_context(source));
+		signal_source->data->source_id = g_source_get_id(source);
 	}
 
 	*timeout_ = -1;
-	return signal_source->info->triggered;
+	return signal_source->data->triggered;
 }
 
 static gboolean dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource*) source;
-	signal_source->info->triggered = FALSE;
+	signal_source->data->triggered = FALSE;
 	return callback(user_data) ? TRUE : FALSE;
 }
 static void finalize(GSource *source)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource*) source;
-	sigaction(signal_source->info->signum, &(struct sigaction){NULL}, NULL);
-	g_main_context_unref(signal_source->info->context);
-	g_ptr_array_remove_fast(signal_infos, signal_source->info);
-	if (signal_infos->len == 0)
-		signal_infos = (GPtrArray*) g_ptr_array_free(signal_infos, TRUE);
-	g_free(signal_source->info);
+	sigaction(signal_source->data->signum, &(struct sigaction){NULL}, NULL);
+	g_main_context_unref(signal_source->data->context);
+	g_ptr_array_remove_fast(signal_data, signal_source->data);
+	if (signal_data->len == 0)
+		signal_data = (GPtrArray*) g_ptr_array_free(signal_data, TRUE);
+	g_free(signal_source->data);
 
 }
 static GSourceFuncs SourceFuncs = 
@@ -76,14 +76,14 @@ static GSourceFuncs SourceFuncs =
 static void g_unix_signal_source_init(GSource *source, gint signum)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource *) source;
-	signal_source->info = g_new(GUnixSignalInfo, 1);
-	signal_source->info->triggered = FALSE;
-	signal_source->info->signum    = signum;
-	signal_source->info->context   = NULL;
+	signal_source->data = g_new(GUnixSignalData, 1);
+	signal_source->data->triggered = FALSE;
+	signal_source->data->signum    = signum;
+	signal_source->data->context   = NULL;
 
-	if (signal_infos == NULL)
-		signal_infos = g_ptr_array_new();
-	g_ptr_array_add(signal_infos, signal_source->info);
+	if (signal_data == NULL)
+		signal_data = g_ptr_array_new();
+	g_ptr_array_add(signal_data, signal_source->data);
 }
 
 GSource *g_unix_signal_source_new(gint signum)
