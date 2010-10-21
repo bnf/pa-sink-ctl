@@ -310,7 +310,7 @@ void interface_clear(void)
 	endwin();
 }
 
-void status(gchar *msg)
+void status(const gchar *msg)
 {
 	static gchar *save = NULL;
 	if (msg != NULL) {

@@ -11,6 +11,6 @@ gboolean get_input(gpointer);
 void interface_init(void);
 gboolean interface_resize(gpointer);
 void interface_clear(void);
-void status(gchar *);
+void status(const gchar *);
 
 #endif
