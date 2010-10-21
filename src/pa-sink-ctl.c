@@ -168,7 +168,9 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gi
 	g_array_append_val(g_array_index(sink_list_tmp, sink_info, i->sink).input_list, ((sink_input_info) {
 		.index = i->index,
 		.sink = i->sink,
-		.name = g_strdup(pa_proplist_gets(i->proplist, "application.name")),
+		.name = pa_proplist_contains(i->proplist, "application.name") ?
+			g_strdup(pa_proplist_gets(i->proplist, "application.name")):
+			g_strdup(i->name),
 		.mute = i->mute,
 		.channels = i->volume.channels,
 		.vol = pa_cvolume_avg(&i->volume),
