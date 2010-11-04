@@ -16,6 +16,7 @@
 #define H_MSG_BOX 3
 
 extern pa_context* context;
+extern gboolean context_ready;
 
 static WINDOW *menu_win;
 static WINDOW *msg_win;
@@ -166,6 +167,9 @@ gboolean get_input(gpointer data)
 {
 	gint c;
 	gboolean volume_increment = TRUE;
+
+	if (!context_ready)
+		return FALSE;
 
 	c = wgetch(menu_win);
 	switch (c) {
