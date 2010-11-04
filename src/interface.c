@@ -29,9 +29,9 @@ static guint32 selected_index;
 
 void interface_init(void)
 {
-	chooser_sink  =  0;
-	chooser_input = -1;
-
+	chooser_sink  =  0;	/* Selected sink-device. 0 is the first device 	*/
+	chooser_input = -1;	/* Selected input of the current sink-device.	*/
+				/* -1 means the sink-device itself		*/
 	initscr();
 	clear();
 
