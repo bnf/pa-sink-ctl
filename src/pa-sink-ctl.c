@@ -8,6 +8,7 @@
 #include "pa-sink-ctl.h"
 
 pa_context *context = NULL;
+gboolean context_ready = FALSE;
 
 static gboolean info_callbacks_finished = TRUE;
 static gboolean info_callbacks_blocked = FALSE;
@@ -69,6 +70,7 @@ static void subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 
 void context_state_callback(pa_context *c, gpointer userdata)
 {
 	static pa_operation *o = NULL;
+	context_ready = FALSE;
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_CONNECTING:
 			status("connecting...");
@@ -86,6 +88,7 @@ void context_state_callback(pa_context *c, gpointer userdata)
 			g_assert((o = pa_context_subscribe(c, (pa_subscription_mask_t) (
 					PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT
 					), NULL, NULL)));
+			context_ready = TRUE;
 			status("ready to process events.");
 			break;
 		case PA_CONTEXT_FAILED:
