@@ -163,7 +163,7 @@ void print_volume(pa_volume_t volume, int mute, int y)
 		1 /* space */ + max_name_len + 1 /* space */;
 
 	//gint vol = (gint) (VOLUME_BAR_LEN * volume / PA_VOLUME_NORM);
-	int volume_bar_len = getmaxx(menu_win) - x - 5 /* mute button + brackets */;
+	int volume_bar_len = getmaxx(menu_win) - x - 6 /* mute button + brackets + space */;
 	gint vol = (gint) (volume_bar_len * volume / PA_VOLUME_NORM);
 
 	mvwprintw(menu_win, y, x - 1, "[%c]", mute ? 'M' : ' ');
@@ -196,7 +196,8 @@ void set_max_name_len(void)
 			input_num < sink_list_get(sink_num)->input_list->len;
 			++input_num) {
 			
-			len = strlen(sink_input_get(sink_num, input_num)->name);
+			len = strlen(sink_input_get(sink_num, input_num)->name)
+				+ 1 /* indentation */;
 
 			if (len > max_name_len)
 				max_name_len = len;
