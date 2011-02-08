@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <string.h>
 #include <sys/ioctl.h>
 
 #include <glib.h>
@@ -27,6 +28,8 @@ static guint input_source_id;
 static gint chooser_sink;
 static gint chooser_input;
 static guint32 selected_index;
+
+guint max_name_len = 0;
 
 void interface_init(void)
 {
@@ -90,7 +93,10 @@ void print_sink_list(void)
 	gint x = 2;
 	gint y = 2;
 	gint offset = 0;
-		
+
+	/* looking for the longest name for right indentation */
+	set_max_name_len();
+	
 	werase(menu_win);
 	box(menu_win, 0, 0);
 
@@ -111,8 +117,9 @@ void print_sink_list(void)
 		if (i == chooser_sink && chooser_input == -1)
 			wattron(menu_win, A_REVERSE);
 
-		mvwprintw(menu_win, y+i+offset, x, "%2u %-13s",
+		mvwprintw(menu_win, y+i+offset, x, "%2u %-*s",
 			sink_list_get(i)->index,
+			max_name_len,
 			sink_list_get(i)->device != NULL ? sink_list_get(i)->device : sink_list_get(i)->name);
 		
 		if (i == chooser_sink && chooser_input == -1)
@@ -126,9 +133,10 @@ void print_sink_list(void)
 	wrefresh(menu_win);
 }
 
+
 void print_input_list(gint sink_num)
 {
-	gint offset = sink_num + 1 + 2;
+	gint offset = sink_num + 3 /* win border + empty line + 1th sink */;
 
 	for (gint i = 0; i < sink_num; ++i)
 		offset += sink_list_get(i)->input_list->len;
@@ -136,19 +144,24 @@ void print_input_list(gint sink_num)
 	for (gint i = 0; i < sink_list_get(sink_num)->input_list->len; ++i) {
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattron(menu_win, A_REVERSE);
-		mvwprintw(menu_win, offset + i, 2, "%*s%-*s", 2+1+1, "", 13 - 1, sink_input_get(sink_num, i)->name);
+
+		mvwprintw(menu_win, offset + i, 2, "%*s%-*s",
+			2+1+1, "", /* space for index number + indentation*/
+			max_name_len - 1,
+			sink_input_get(sink_num, i)->name);
+
 		if (chooser_sink == sink_num && chooser_input == i)
 			wattroff(menu_win, A_REVERSE);
 
-		print_volume(sink_input_get(sink_num, i)->vol, sink_input_get(sink_num, i)->mute, offset + i);
+		print_volume(sink_input_get(sink_num, i)->vol,
+			sink_input_get(sink_num, i)->mute, offset + i);
 	}
-		
 }
 
 void print_volume(pa_volume_t volume, int mute, int y)
 {
 	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
-		1 /* space */ + 13 /* input name*/ + 1 /* space */;
+		1 /* space */ + max_name_len + 1 /* space */;
 
 	gint vol = (gint) (VOLUME_BAR_LEN * volume / PA_VOLUME_NORM);
 
@@ -161,6 +174,33 @@ void print_volume(pa_volume_t volume, int mute, int y)
 	for (gint i = vol; i < VOLUME_BAR_LEN; ++i)
 		mvwprintw(menu_win, y, x + i, " ");
 	mvwprintw(menu_win, y, x + VOLUME_BAR_LEN, "]");
+}
+
+/* looking for the longest name length of all SINK's and INPUT's */
+void set_max_name_len(void)
+{
+	guint len = 0;
+	max_name_len = len;
+
+	for (gint sink_num = 0; sink_num < sink_list->len; ++sink_num) {
+		
+		len = strlen(sink_list_get(sink_num)->device != NULL ? 
+				sink_list_get(sink_num)->device :
+				sink_list_get(sink_num)->name);
+
+		if (len > max_name_len)
+			max_name_len = len;
+		
+		for (gint input_num = 0;
+			input_num < sink_list_get(sink_num)->input_list->len;
+			++input_num) {
+			
+			len = strlen(sink_input_get(sink_num, input_num)->name);
+
+			if (len > max_name_len)
+				max_name_len = len;
+		}
+	}
 }
 
 gboolean get_input(gpointer data)

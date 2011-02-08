@@ -12,5 +12,6 @@ void interface_init(void);
 gboolean interface_resize(gpointer);
 void interface_clear(void);
 void status(const gchar *);
+void set_max_name_len(void);
 
 #endif
