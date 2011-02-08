@@ -13,7 +13,6 @@
 #include "g_unix_signal.h"
 #include "g_curses_input.h"
 
-#define VOLUME_BAR_LEN 50
 #define H_MSG_BOX 3
 
 extern pa_context* context;
@@ -163,7 +162,9 @@ void print_volume(pa_volume_t volume, int mute, int y)
 	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
 		1 /* space */ + max_name_len + 1 /* space */;
 
-	gint vol = (gint) (VOLUME_BAR_LEN * volume / PA_VOLUME_NORM);
+	//gint vol = (gint) (VOLUME_BAR_LEN * volume / PA_VOLUME_NORM);
+	int volume_bar_len = getmaxx(menu_win) - x - 5 /* mute button + brackets */;
+	gint vol = (gint) (volume_bar_len * volume / PA_VOLUME_NORM);
 
 	mvwprintw(menu_win, y, x - 1, "[%c]", mute ? 'M' : ' ');
 	x += 3;
@@ -171,9 +172,9 @@ void print_volume(pa_volume_t volume, int mute, int y)
 	mvwprintw(menu_win, y, x - 1 , "[");
 	for (gint i = 0; i < vol; ++i)
 		mvwprintw(menu_win, y, x + i, "=");
-	for (gint i = vol; i < VOLUME_BAR_LEN; ++i)
+	for (gint i = vol; i < volume_bar_len; ++i)
 		mvwprintw(menu_win, y, x + i, " ");
-	mvwprintw(menu_win, y, x + VOLUME_BAR_LEN, "]");
+	mvwprintw(menu_win, y, x + volume_bar_len, "]");
 }
 
 /* looking for the longest name length of all SINK's and INPUT's */
