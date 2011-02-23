@@ -1,5 +1,5 @@
 #AC_PREREQ([2.65])
-AC_INIT([pa-sink-ctl], [0.1], [web2p10@wemelug.de])
+AC_INIT([pa-sink-ctl], [20110223], [web2p10@wemelug.de])
 AM_INIT_AUTOMAKE
 
 AC_CONFIG_SRCDIR([src/pa-sink-ctl.c])
