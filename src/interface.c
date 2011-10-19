@@ -56,7 +56,8 @@ void interface_init(void)
 
 	/* register event handler for resize and input */
 	resize_source_id = g_unix_signal_add(SIGWINCH, interface_resize, NULL);
-	input_source_id  = g_curses_input_add(menu_win, get_input, NULL);
+	input_source_id  = g_curses_input_add(menu_win, interface_get_input,
+					      NULL);
 	
 	refresh();
 }
@@ -205,7 +206,7 @@ void set_max_name_len(void)
 	}
 }
 
-gboolean get_input(gpointer data)
+gboolean interface_get_input(gpointer data)
 {
 	gint c;
 	gboolean volume_increment = TRUE;
