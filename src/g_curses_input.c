@@ -1,6 +1,7 @@
 #include <curses.h>
 #include <glib.h>
 #include "interface.h"
+#include "g_curses_input.h"
 
 typedef struct _GCursesInput {
 	GSource source;

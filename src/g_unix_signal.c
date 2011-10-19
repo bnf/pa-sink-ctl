@@ -1,6 +1,7 @@
 #define _POSIX_SOURCE
 #include <signal.h>
 #include <glib.h>
+#include "g_unix_signal.h"
 
 static GPtrArray *signal_data = NULL;
 
