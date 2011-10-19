@@ -7,7 +7,8 @@ typedef struct _GCursesInput {
 	WINDOW *win;
 } GCursesInput;
 
-static gboolean check(GSource *source)
+static gboolean
+check(GSource *source)
 {
 	GCursesInput *curses_input = (GCursesInput*) source;
 	static int i = 0;
@@ -18,13 +19,15 @@ static gboolean check(GSource *source)
 	return ch != ERR;
 }
 
-static gboolean prepare(GSource *source, gint *timeout_)
+static gboolean
+prepare(GSource *source, gint *timeout_)
 {
 	*timeout_ = 2;
 	return check(source);
 }
 
-static gboolean dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
+static gboolean
+dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
 	GCursesInput *curses_input = (GCursesInput*) source;
 	return callback((gpointer)curses_input->win) ? TRUE : FALSE;
@@ -39,7 +42,8 @@ static GSourceFuncs SourceFuncs =
 	.closure_callback = NULL, .closure_marshal = NULL
 };
 
-GSource *g_curses_input_source_new(WINDOW *win) {
+GSource *
+g_curses_input_source_new(WINDOW *win) {
 	GSource *source = g_source_new(&SourceFuncs, sizeof(GCursesInput));
 	GCursesInput *curses_input = (GCursesInput*) source;
 	curses_input->win = win;
@@ -47,7 +51,8 @@ GSource *g_curses_input_source_new(WINDOW *win) {
 	return source;
 }
 
-guint g_curses_input_add_full(gint priority, WINDOW *win, GSourceFunc function, gpointer data, GDestroyNotify notify)
+guint
+g_curses_input_add_full(gint priority, WINDOW *win, GSourceFunc function, gpointer data, GDestroyNotify notify)
 {
 	g_return_val_if_fail(function != NULL, 0);
 	GSource *source = g_curses_input_source_new(win);
@@ -59,7 +64,8 @@ guint g_curses_input_add_full(gint priority, WINDOW *win, GSourceFunc function, 
 	return id;
 }
 
-guint g_curses_input_add(WINDOW *win, GSourceFunc function, gpointer data)
+guint
+g_curses_input_add(WINDOW *win, GSourceFunc function, gpointer data)
 {
 	return g_curses_input_add_full(G_PRIORITY_DEFAULT, win, function, data, NULL);
 }

@@ -30,7 +30,8 @@ static guint32 selected_index;
 
 guint max_name_len = 0;
 
-void interface_init(void)
+void
+interface_init(void)
 {
 	chooser_sink  =  0;	/* Selected sink-device. 0 is the first device 	*/
 	chooser_input = -1;	/* Selected input of the current sink-device.	*/
@@ -62,7 +63,8 @@ void interface_init(void)
 	refresh();
 }
 
-gboolean interface_resize(gpointer data)
+gboolean
+interface_resize(gpointer data)
 {
 	struct winsize wsize;
 	gint height = 80;
@@ -87,7 +89,8 @@ gboolean interface_resize(gpointer data)
 	return TRUE;
 }
 
-void print_sink_list(void)
+void
+print_sink_list(void)
 {
 	gint i = 0;
 	gint x = 2;
@@ -134,7 +137,8 @@ void print_sink_list(void)
 }
 
 
-void print_input_list(gint sink_num)
+void
+print_input_list(gint sink_num)
 {
 	gint offset = sink_num + 3 /* win border + empty line + 1th sink */;
 
@@ -158,7 +162,8 @@ void print_input_list(gint sink_num)
 	}
 }
 
-void print_volume(pa_volume_t volume, int mute, int y)
+void
+print_volume(pa_volume_t volume, int mute, int y)
 {
 	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
 		1 /* space */ + max_name_len + 1 /* space */;
@@ -179,7 +184,8 @@ void print_volume(pa_volume_t volume, int mute, int y)
 }
 
 /* looking for the longest name length of all SINK's and INPUT's */
-void set_max_name_len(void)
+void
+set_max_name_len(void)
 {
 	guint len = 0;
 	max_name_len = len;
@@ -206,7 +212,8 @@ void set_max_name_len(void)
 	}
 }
 
-gboolean interface_get_input(gpointer data)
+gboolean
+interface_get_input(gpointer data)
 {
 	gint c;
 	gboolean volume_increment = TRUE;
@@ -348,7 +355,8 @@ gboolean interface_get_input(gpointer data)
 	return TRUE;
 }
 
-void interface_clear(void)
+void
+interface_clear(void)
 {
 	g_source_remove(resize_source_id);
 	g_source_remove(input_source_id);
@@ -357,7 +365,8 @@ void interface_clear(void)
 	endwin();
 }
 
-void status(const gchar *msg)
+void
+status(const gchar *msg)
 {
 	static gchar *save = NULL;
 	if (msg != NULL) {

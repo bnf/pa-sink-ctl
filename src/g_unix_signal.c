@@ -16,12 +16,14 @@ typedef struct _GUnixSignalSource {
 	GUnixSignalData *data;
 } GUnixSignalSource;
 
-static inline GUnixSignalData* get_signal_data(guint index)
+static inline GUnixSignalData *
+get_signal_data(guint index)
 {
 	return (GUnixSignalData*)g_ptr_array_index(signal_data, index);
 }
 
-static void handler(gint signum) {
+static void
+handler(gint signum) {
 	g_assert(signal_data != NULL);
 	for (guint i = 0; i < signal_data->len; ++i)
 		if (get_signal_data(i)->signum == signum)
@@ -29,13 +31,15 @@ static void handler(gint signum) {
 	sigaction(signum, &(struct sigaction){handler}, NULL);
 }
 
-static gboolean check(GSource *source)
+static gboolean
+check(GSource *source)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource*) source;
 	return signal_source->data->triggered;
 }
 
-static gboolean prepare(GSource *source, gint *timeout_)
+static gboolean
+prepare(GSource *source, gint *timeout_)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource*) source;
 	if (signal_source->data->context == NULL) {
@@ -47,13 +51,16 @@ static gboolean prepare(GSource *source, gint *timeout_)
 	return signal_source->data->triggered;
 }
 
-static gboolean dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
+static gboolean
+dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource*) source;
 	signal_source->data->triggered = FALSE;
 	return callback(user_data) ? TRUE : FALSE;
 }
-static void finalize(GSource *source)
+
+static void
+finalize(GSource *source)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource*) source;
 	sigaction(signal_source->data->signum, &(struct sigaction){NULL}, NULL);
@@ -73,7 +80,8 @@ static GSourceFuncs SourceFuncs =
 	.closure_callback = NULL, .closure_marshal = NULL
 };
 
-static void g_unix_signal_source_init(GSource *source, gint signum)
+static void
+g_unix_signal_source_init(GSource *source, gint signum)
 {
 	GUnixSignalSource *signal_source = (GUnixSignalSource *) source;
 	signal_source->data = g_new(GUnixSignalData, 1);
@@ -86,7 +94,8 @@ static void g_unix_signal_source_init(GSource *source, gint signum)
 	g_ptr_array_add(signal_data, signal_source->data);
 }
 
-GSource *g_unix_signal_source_new(gint signum)
+GSource *
+g_unix_signal_source_new(gint signum)
 {
 	GSource *source = g_source_new(&SourceFuncs, sizeof(GUnixSignalSource));
 	g_unix_signal_source_init(source, signum);
@@ -94,7 +103,8 @@ GSource *g_unix_signal_source_new(gint signum)
 	return source;
 }
 
-guint g_unix_signal_add_full(gint priority, gint signum, GSourceFunc function, gpointer data, GDestroyNotify notify)
+guint
+g_unix_signal_add_full(gint priority, gint signum, GSourceFunc function, gpointer data, GDestroyNotify notify)
 {
 	g_return_val_if_fail(function != NULL, 0);
 	GSource *source = g_unix_signal_source_new(signum);

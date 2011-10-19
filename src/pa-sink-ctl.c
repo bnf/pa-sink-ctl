@@ -13,7 +13,8 @@ gboolean context_ready = FALSE;
 static gboolean info_callbacks_finished = TRUE;
 static gboolean info_callbacks_blocked = FALSE;
 
-int main(int argc, char** argv)
+int
+main(int argc, char** argv)
 {
 	pa_mainloop_api  *mainloop_api = NULL;
 	pa_glib_mainloop *m            = NULL;
@@ -56,7 +57,8 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-static void subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 idx, gpointer userdata)
+static void
+subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 idx, gpointer userdata)
 {
 	if (!info_callbacks_finished)
 		info_callbacks_blocked = TRUE;
@@ -67,7 +69,8 @@ static void subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 
 /*
  * is called after connection
  */
-void context_state_callback(pa_context *c, gpointer userdata)
+void
+context_state_callback(pa_context *c, gpointer userdata)
 {
 	static pa_operation *o = NULL;
 	context_ready = FALSE;
@@ -112,7 +115,8 @@ void context_state_callback(pa_context *c, gpointer userdata)
 /*
  * the begin of the callback loops
  */
-void get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpointer userdata)
+void
+get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpointer userdata)
 {
 	g_assert(userdata != NULL);
 	GArray *sink_list_tmp = userdata;
@@ -142,7 +146,8 @@ void get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, 
 /*
  * is called after sink-input
  */
-void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is_last, gpointer userdata)
+void
+get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is_last, gpointer userdata)
 {
 	g_assert(userdata != NULL);
 	GArray *sink_list_tmp = userdata;
@@ -181,7 +186,8 @@ void get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gi
 	}));
 }
 
-void quit(void)
+void
+quit(void)
 {
 	pa_context_disconnect(context);
 }
@@ -189,12 +195,14 @@ void quit(void)
 /*
  * is called, after user input
  */
-void change_callback(pa_context* c, gint success, gpointer userdata)
+void
+change_callback(pa_context* c, gint success, gpointer userdata)
 {
 	return;
 }
 
-void collect_all_info(void)
+void
+collect_all_info(void)
 {
 	if (!info_callbacks_finished)
 		return;
