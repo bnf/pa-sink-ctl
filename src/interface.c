@@ -51,7 +51,7 @@ interface_resize(gpointer data)
 	mvwin(msg_win, height - H_MSG_BOX, 0);
 	
 	/* NULL := display old status */
-	status(NULL); 
+	interface_set_status(NULL); 
 	print_sink_list();
 	return TRUE;
 }
@@ -332,7 +332,7 @@ interface_clear(void)
 }
 
 void
-status(const gchar *msg)
+interface_set_status(const gchar *msg)
 {
 	static gchar *save = NULL;
 	if (msg != NULL) {

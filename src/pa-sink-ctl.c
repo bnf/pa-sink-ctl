@@ -76,13 +76,13 @@ context_state_callback(pa_context *c, gpointer userdata)
 	context_ready = FALSE;
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_CONNECTING:
-			status("connecting...");
+			interface_set_status("connecting...");
 			break;
 		case PA_CONTEXT_AUTHORIZING:
-			status("authorizing...");
+			interface_set_status("authorizing...");
 			break;
 		case PA_CONTEXT_SETTING_NAME:
-			status("setting name...");
+			interface_set_status("setting name...");
 			break;
 
 		case PA_CONTEXT_READY:
@@ -92,10 +92,10 @@ context_state_callback(pa_context *c, gpointer userdata)
 					PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT
 					), NULL, NULL)));
 			context_ready = TRUE;
-			status("ready to process events.");
+			interface_set_status("ready to process events.");
 			break;
 		case PA_CONTEXT_FAILED:
-			status("cannot connect!");
+			interface_set_status("cannot connect!");
 			break;
 
 		case PA_CONTEXT_TERMINATED:
@@ -103,11 +103,11 @@ context_state_callback(pa_context *c, gpointer userdata)
 			pa_operation_cancel(o);
 			pa_operation_unref(o);
 			o = NULL;
-			status("connection terminated.");
+			interface_set_status("connection terminated.");
 			g_main_loop_quit((GMainLoop *)userdata);
 			break;
 		default:
-			status("unknown state");
+			interface_set_status("unknown state");
 			break;
 	}
 }

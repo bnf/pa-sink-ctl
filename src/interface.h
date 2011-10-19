@@ -7,6 +7,6 @@
 void print_sink_list(void);
 void interface_init(void);
 void interface_clear(void);
-void status(const gchar *);
+void interface_set_status(const gchar *);
 
 #endif
