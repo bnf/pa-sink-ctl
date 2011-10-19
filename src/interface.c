@@ -337,15 +337,16 @@ interface_clear(void)
 void
 interface_set_status(const gchar *msg)
 {
-	static gchar *save = NULL;
+	static gchar *status = NULL;
+
 	if (msg != NULL) {
-		g_free(save);
-		save = g_strdup(msg);
+		g_free(status);
+		status = g_strdup(msg);
 	}
 	werase(msg_win);
 	box(msg_win, 0, 0);
-	if (save != NULL)
-		mvwprintw(msg_win, 1, 1, save);
+	if (status != NULL)
+		mvwprintw(msg_win, 1, 1, status);
 	wrefresh(msg_win);
 	refresh();
 }
