@@ -15,6 +15,9 @@
 
 #define H_MSG_BOX 3
 
+#define SELECTED_UNKNOWN -2
+#define SELECTED_SINK -1
+
 extern pa_context* context;
 extern gboolean context_ready;
 
@@ -146,9 +149,9 @@ print_sink_list(void)
 	box(menu_win, 0, 0);
 
 	/* derive chooser_input from selected_index (this is set when input is moved) */
-	if (chooser_input == -2) {
+	if (chooser_input == SELECTED_UNKNOWN) {
 		/* if index is will not be found (in the loop), select the sink itself */
-		chooser_input = -1; 
+		chooser_input = SELECTED_SINK; 
 		/* step through inputs for current sink and find the selected */
 		for (i = 0; i < sink_list_get(chooser_sink)->input_list->len; ++i) {
 			if (selected_index == sink_input_get(chooser_sink, i)->index) {
@@ -159,7 +162,7 @@ print_sink_list(void)
 	}
 	
 	for (i = 0; i < sink_list->len; ++i) {
-		if (i == chooser_sink && chooser_input == -1)
+		if (i == chooser_sink && chooser_input == SELECTED_SINK)
 			wattron(menu_win, A_REVERSE);
 
 		mvwprintw(menu_win, y+i+offset, x, "%2u %-*s",
@@ -167,7 +170,7 @@ print_sink_list(void)
 			max_name_len,
 			sink_list_get(i)->device != NULL ? sink_list_get(i)->device : sink_list_get(i)->name);
 		
-		if (i == chooser_sink && chooser_input == -1)
+		if (i == chooser_sink && chooser_input == SELECTED_SINK)
 			wattroff(menu_win, A_REVERSE);
 		print_volume(sink_list_get(i)->vol, sink_list_get(i)->mute, y+i+offset);
 
@@ -192,7 +195,7 @@ interface_get_input(gpointer data)
 		case 'k':
 		case 'w':
 		case KEY_UP:
-			if (chooser_input == -1 && chooser_sink > 0) {
+			if (chooser_input == SELECTED_SINK && chooser_sink > 0) {
 				--chooser_sink;
 				chooser_input = (gint)sink_list_get(chooser_sink)->input_list->len - 1;
 			}
@@ -207,7 +210,7 @@ interface_get_input(gpointer data)
 		case KEY_DOWN:
 			if (chooser_input == ((gint)sink_list_get(chooser_sink)->input_list->len - 1) && chooser_sink < (gint)sink_list->len - 1) {
 					++chooser_sink;
-					chooser_input = -1;
+					chooser_input = SELECTED_SINK;
 			}
 			else if (chooser_input < ((gint)sink_list_get(chooser_sink)->input_list->len - 1))
 				++chooser_input;
@@ -237,7 +240,7 @@ interface_get_input(gpointer data)
 					.tmp_vol    = input->vol, 
 					.volume_set = pa_context_set_sink_input_volume
 				};
-			} else if (chooser_input == -1) {
+			} else if (chooser_input == SELECTED_SINK) {
 				sink_info *sink = sink_list_get(chooser_sink);
 				tmp = (struct tmp_t) {
 					.index      = sink->index,
@@ -281,7 +284,7 @@ interface_get_input(gpointer data)
 					.mute     = input->mute,
 					.mute_set = pa_context_set_sink_input_mute
 				};
-			} else if (chooser_input == -1) {
+			} else if (chooser_input == SELECTED_SINK) {
 				sink_info *sink = sink_list_get(chooser_sink);
 				tmp = (struct tmp_t) {
 					.index    = sink->index,
@@ -298,7 +301,7 @@ interface_get_input(gpointer data)
 		case '\n':
 		case '\t':
 		case ' ':
-			if (chooser_input == -1)
+			if (chooser_input == SELECTED_SINK)
 				break;
 			selected_index = sink_input_get(chooser_sink, chooser_input)->index;
 			if (chooser_sink < (gint)sink_list->len - 1)
@@ -307,7 +310,7 @@ interface_get_input(gpointer data)
 				chooser_sink = 0;
 
 			/* chooser_input needs to be derived from $selected_index */
-			chooser_input = -2; 
+			chooser_input = SELECTED_UNKNOWN; 
 			pa_operation_unref(pa_context_move_sink_input_by_index(context, selected_index,
 						sink_list_get(chooser_sink)->index,
 						change_callback, NULL));
@@ -350,9 +353,9 @@ interface_set_status(const gchar *msg)
 void
 interface_init(void)
 {
-	chooser_sink  =  0;	/* Selected sink-device. 0 is the first device 	*/
-	chooser_input = -1;	/* Selected input of the current sink-device.	*/
-				/* -1 means the sink-device itself		*/
+	chooser_sink  = 0;		/* Selected sink-device. 0 is the first device */
+	chooser_input = SELECTED_SINK;	/* Selected input of the current sink-device.  */
+					/* SELECTED_SINK refers to sink-device itself  */
 	initscr();
 	clear();
 
