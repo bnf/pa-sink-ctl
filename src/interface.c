@@ -30,40 +30,7 @@ static guint32 selected_index;
 
 guint max_name_len = 0;
 
-void
-interface_init(void)
-{
-	chooser_sink  =  0;	/* Selected sink-device. 0 is the first device 	*/
-	chooser_input = -1;	/* Selected input of the current sink-device.	*/
-				/* -1 means the sink-device itself		*/
-	initscr();
-	clear();
-
-	noecho();
-	/* Line buffering disabled. pass on everything */
-	cbreak();
-	/* hide cursor */
-	curs_set(0);
-
-	/* 0,0,0,0 := fullscreen */
-	menu_win = newwin(0, 0, 0, 0);
-	msg_win  = newwin(0, 0, 0, 0);
-	
-	/* multichar keys are mapped to one char */
-	keypad(menu_win, TRUE);
-
-	/* "resizing" here is for initial box positioning and layout */ 
-	interface_resize(NULL);
-
-	/* register event handler for resize and input */
-	resize_source_id = g_unix_signal_add(SIGWINCH, interface_resize, NULL);
-	input_source_id  = g_curses_input_add(menu_win, interface_get_input,
-					      NULL);
-	
-	refresh();
-}
-
-gboolean
+static gboolean
 interface_resize(gpointer data)
 {
 	struct winsize wsize;
@@ -87,6 +54,81 @@ interface_resize(gpointer data)
 	status(NULL); 
 	print_sink_list();
 	return TRUE;
+}
+
+static void
+print_volume(pa_volume_t volume, int mute, int y)
+{
+	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
+		1 /* space */ + max_name_len + 1 /* space */;
+
+	//gint vol = (gint) (VOLUME_BAR_LEN * volume / PA_VOLUME_NORM);
+	int volume_bar_len = getmaxx(menu_win) - x - 6 /* mute button + brackets + space */;
+	gint vol = (gint) (volume_bar_len * volume / PA_VOLUME_NORM);
+
+	mvwprintw(menu_win, y, x - 1, "[%c]", mute ? 'M' : ' ');
+	x += 3;
+
+	mvwprintw(menu_win, y, x - 1 , "[");
+	for (gint i = 0; i < vol; ++i)
+		mvwprintw(menu_win, y, x + i, "=");
+	for (gint i = vol; i < volume_bar_len; ++i)
+		mvwprintw(menu_win, y, x + i, " ");
+	mvwprintw(menu_win, y, x + volume_bar_len, "]");
+}
+
+static void
+print_input_list(gint sink_num)
+{
+	gint offset = sink_num + 3 /* win border + empty line + 1th sink */;
+
+	for (gint i = 0; i < sink_num; ++i)
+		offset += sink_list_get(i)->input_list->len;
+
+	for (gint i = 0; i < sink_list_get(sink_num)->input_list->len; ++i) {
+		if (chooser_sink == sink_num && chooser_input == i)
+			wattron(menu_win, A_REVERSE);
+
+		mvwprintw(menu_win, offset + i, 2, "%*s%-*s",
+			2+1+1, "", /* space for index number + indentation*/
+			max_name_len - 1,
+			sink_input_get(sink_num, i)->name);
+
+		if (chooser_sink == sink_num && chooser_input == i)
+			wattroff(menu_win, A_REVERSE);
+
+		print_volume(sink_input_get(sink_num, i)->vol,
+			sink_input_get(sink_num, i)->mute, offset + i);
+	}
+}
+
+/* looking for the longest name length of all SINK's and INPUT's */
+static void
+set_max_name_len(void)
+{
+	guint len = 0;
+	max_name_len = len;
+
+	for (gint sink_num = 0; sink_num < sink_list->len; ++sink_num) {
+		
+		len = strlen(sink_list_get(sink_num)->device != NULL ? 
+				sink_list_get(sink_num)->device :
+				sink_list_get(sink_num)->name);
+
+		if (len > max_name_len)
+			max_name_len = len;
+		
+		for (gint input_num = 0;
+			input_num < sink_list_get(sink_num)->input_list->len;
+			++input_num) {
+			
+			len = strlen(sink_input_get(sink_num, input_num)->name)
+				+ 1 /* indentation */;
+
+			if (len > max_name_len)
+				max_name_len = len;
+		}
+	}
 }
 
 void
@@ -136,83 +178,7 @@ print_sink_list(void)
 	wrefresh(menu_win);
 }
 
-
-void
-print_input_list(gint sink_num)
-{
-	gint offset = sink_num + 3 /* win border + empty line + 1th sink */;
-
-	for (gint i = 0; i < sink_num; ++i)
-		offset += sink_list_get(i)->input_list->len;
-
-	for (gint i = 0; i < sink_list_get(sink_num)->input_list->len; ++i) {
-		if (chooser_sink == sink_num && chooser_input == i)
-			wattron(menu_win, A_REVERSE);
-
-		mvwprintw(menu_win, offset + i, 2, "%*s%-*s",
-			2+1+1, "", /* space for index number + indentation*/
-			max_name_len - 1,
-			sink_input_get(sink_num, i)->name);
-
-		if (chooser_sink == sink_num && chooser_input == i)
-			wattroff(menu_win, A_REVERSE);
-
-		print_volume(sink_input_get(sink_num, i)->vol,
-			sink_input_get(sink_num, i)->mute, offset + i);
-	}
-}
-
-void
-print_volume(pa_volume_t volume, int mute, int y)
-{
-	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
-		1 /* space */ + max_name_len + 1 /* space */;
-
-	//gint vol = (gint) (VOLUME_BAR_LEN * volume / PA_VOLUME_NORM);
-	int volume_bar_len = getmaxx(menu_win) - x - 6 /* mute button + brackets + space */;
-	gint vol = (gint) (volume_bar_len * volume / PA_VOLUME_NORM);
-
-	mvwprintw(menu_win, y, x - 1, "[%c]", mute ? 'M' : ' ');
-	x += 3;
-
-	mvwprintw(menu_win, y, x - 1 , "[");
-	for (gint i = 0; i < vol; ++i)
-		mvwprintw(menu_win, y, x + i, "=");
-	for (gint i = vol; i < volume_bar_len; ++i)
-		mvwprintw(menu_win, y, x + i, " ");
-	mvwprintw(menu_win, y, x + volume_bar_len, "]");
-}
-
-/* looking for the longest name length of all SINK's and INPUT's */
-void
-set_max_name_len(void)
-{
-	guint len = 0;
-	max_name_len = len;
-
-	for (gint sink_num = 0; sink_num < sink_list->len; ++sink_num) {
-		
-		len = strlen(sink_list_get(sink_num)->device != NULL ? 
-				sink_list_get(sink_num)->device :
-				sink_list_get(sink_num)->name);
-
-		if (len > max_name_len)
-			max_name_len = len;
-		
-		for (gint input_num = 0;
-			input_num < sink_list_get(sink_num)->input_list->len;
-			++input_num) {
-			
-			len = strlen(sink_input_get(sink_num, input_num)->name)
-				+ 1 /* indentation */;
-
-			if (len > max_name_len)
-				max_name_len = len;
-		}
-	}
-}
-
-gboolean
+static gboolean
 interface_get_input(gpointer data)
 {
 	gint c;
@@ -378,5 +344,38 @@ status(const gchar *msg)
 	if (save != NULL)
 		mvwprintw(msg_win, 1, 1, save);
 	wrefresh(msg_win);
+	refresh();
+}
+
+void
+interface_init(void)
+{
+	chooser_sink  =  0;	/* Selected sink-device. 0 is the first device 	*/
+	chooser_input = -1;	/* Selected input of the current sink-device.	*/
+				/* -1 means the sink-device itself		*/
+	initscr();
+	clear();
+
+	noecho();
+	/* Line buffering disabled. pass on everything */
+	cbreak();
+	/* hide cursor */
+	curs_set(0);
+
+	/* 0,0,0,0 := fullscreen */
+	menu_win = newwin(0, 0, 0, 0);
+	msg_win  = newwin(0, 0, 0, 0);
+	
+	/* multichar keys are mapped to one char */
+	keypad(menu_win, TRUE);
+
+	/* "resizing" here is for initial box positioning and layout */ 
+	interface_resize(NULL);
+
+	/* register event handler for resize and input */
+	resize_source_id = g_unix_signal_add(SIGWINCH, interface_resize, NULL);
+	input_source_id  = g_curses_input_add(menu_win, interface_get_input,
+					      NULL);
+	
 	refresh();
 }

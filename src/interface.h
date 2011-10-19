@@ -5,13 +5,8 @@
 #include <pulse/pulseaudio.h>
 
 void print_sink_list(void);
-void print_input_list(gint);
-void print_volume(pa_volume_t, gint, gint);
-gboolean interface_get_input(gpointer);
 void interface_init(void);
-gboolean interface_resize(gpointer);
 void interface_clear(void);
 void status(const gchar *);
-void set_max_name_len(void);
 
 #endif
