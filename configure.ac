@@ -1,6 +1,7 @@
 #AC_PREREQ([2.65])
 AC_INIT([pa-sink-ctl], [20110223], [web2p10@wemelug.de])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([1.11 foreign dist-bzip2])
+AM_SILENT_RULES([yes])
 
 AC_CONFIG_SRCDIR([src/pa-sink-ctl.c])
 AC_CONFIG_HEADERS([config.h])
