@@ -24,7 +24,6 @@ if test "x$GCC" = "xyes"; then
 fi
 AC_SUBST(GCC_CFLAGS)
 
-
 AC_SUBST(CURSES_LIBS)
 
 AC_CHECK_HEADERS([ncurses.h sys/ioctl.h unistd.h signal.h])
