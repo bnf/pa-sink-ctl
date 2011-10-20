@@ -26,9 +26,15 @@ AC_SUBST(GCC_CFLAGS)
 
 AC_SUBST(CURSES_LIBS)
 
-AC_CHECK_HEADERS([ncurses.h sys/ioctl.h unistd.h signal.h])
+AC_CHECK_HEADERS([ncurses.h sys/ioctl.h sys/signalfd.h unistd.h signal.h])
 
 AC_CHECK_FUNC([sigaction], [], AC_MSG_ERROR([function sigaction() not found]))
+AC_CHECK_FUNCS([signalfd])
+
+AM_CONDITIONAL([HAVE_SIGNALFD],
+	       [test "x$ac_cv_func_signalfd" = "xyes" -a "x$ac_cv_header_sys_signalfd_h" = "xyes"])
+
+AC_DEFINE([_POSIX_C_SOURCE], [1], [Enable POSIX.1-1990 definitions])
 
 AC_C_INLINE
 

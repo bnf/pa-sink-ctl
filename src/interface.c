@@ -10,7 +10,12 @@
 #include "sink.h"
 #include "pa-sink-ctl.h"
 
+#ifdef HAVE_SIGNALFD
+#include <sys/signalfd.h>
+#include <signal.h>
+#else
 #include "unix_signal.h"
+#endif
 
 #define H_MSG_BOX 3
 
@@ -24,6 +29,9 @@ static WINDOW *menu_win;
 static WINDOW *msg_win;
 
 static guint resize_source_id;
+#ifdef HAVE_SIGNALFD
+static int signal_fd;
+#endif
 static guint input_source_id;
 
 static gint chooser_sink;
@@ -329,6 +337,7 @@ interface_clear(void)
 {
 	g_source_remove(resize_source_id);
 	g_source_remove(input_source_id);
+	close(signal_fd);
 	clear();
 	refresh();
 	endwin();
@@ -350,6 +359,14 @@ interface_set_status(const gchar *msg)
 	wrefresh(msg_win);
 	refresh();
 }
+
+#ifdef HAVE_SIGNALFD
+static gboolean
+resize_gio(GIOChannel *source, GIOCondition condition, gpointer data)
+{
+	return interface_resize(data);
+}
+#endif
 
 void
 interface_init(void)
@@ -378,8 +395,23 @@ interface_init(void)
 	/* "resizing" here is for initial box positioning and layout */ 
 	interface_resize(NULL);
 
+#ifdef HAVE_SIGNALFD
+	{
+		GIOChannel *channel;
+		sigset_t mask;
+
+		sigemptyset(&mask);
+		sigaddset(&mask, SIGWINCH);
+
+		signal_fd = signalfd(-1, &mask, 0);
+		channel = g_io_channel_unix_new(signal_fd);
+		g_io_add_watch(channel, G_IO_IN, resize_gio, NULL);
+		g_io_channel_unref(channel);
+	}
+#else
 	/* register event handler for resize and input */
 	resize_source_id = unix_signal_add(SIGWINCH, interface_resize, NULL);
+#endif
 	input_channel = g_io_channel_unix_new(STDIN_FILENO);
 	if (!input_channel)
 		exit(EXIT_FAILURE);
