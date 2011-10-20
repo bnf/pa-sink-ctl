@@ -11,7 +11,6 @@
 #include "pa-sink-ctl.h"
 
 #include "g_unix_signal.h"
-#include "g_curses_input.h"
 
 #define H_MSG_BOX 3
 
@@ -182,13 +181,13 @@ print_sink_list(void)
 }
 
 static gboolean
-interface_get_input(gpointer data)
+interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 {
 	gint c;
 	gboolean volume_increment = TRUE;
 
 	if (!context_ready)
-		return FALSE;
+		return TRUE;
 
 	c = wgetch(menu_win);
 	switch (c) {
@@ -321,6 +320,7 @@ interface_get_input(gpointer data)
 			quit();
 			break;
 	}
+
 	return TRUE;
 }
 
@@ -354,6 +354,8 @@ interface_set_status(const gchar *msg)
 void
 interface_init(void)
 {
+	GIOChannel *input_channel;
+
 	chooser_sink  = 0;		/* Selected sink-device. 0 is the first device */
 	chooser_input = SELECTED_SINK;	/* Selected input of the current sink-device.  */
 					/* SELECTED_SINK refers to sink-device itself  */
@@ -378,8 +380,12 @@ interface_init(void)
 
 	/* register event handler for resize and input */
 	resize_source_id = g_unix_signal_add(SIGWINCH, interface_resize, NULL);
-	input_source_id  = g_curses_input_add(menu_win, interface_get_input,
-					      NULL);
+	input_channel = g_io_channel_unix_new(STDIN_FILENO);
+	if (!input_channel)
+		exit(EXIT_FAILURE);
+	input_source_id = g_io_add_watch(input_channel, G_IO_IN,
+					 interface_get_input, NULL);
+	g_io_channel_unref(input_channel);
 	
 	refresh();
 }
