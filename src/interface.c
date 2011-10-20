@@ -10,7 +10,7 @@
 #include "sink.h"
 #include "pa-sink-ctl.h"
 
-#include "g_unix_signal.h"
+#include "unix_signal.h"
 
 #define H_MSG_BOX 3
 
@@ -379,7 +379,7 @@ interface_init(void)
 	interface_resize(NULL);
 
 	/* register event handler for resize and input */
-	resize_source_id = g_unix_signal_add(SIGWINCH, interface_resize, NULL);
+	resize_source_id = unix_signal_add(SIGWINCH, interface_resize, NULL);
 	input_channel = g_io_channel_unix_new(STDIN_FILENO);
 	if (!input_channel)
 		exit(EXIT_FAILURE);
