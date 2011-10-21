@@ -1,12 +1,6 @@
 #ifndef SINK_H
 #define SINK_H
 
-#ifdef SINK_C
-GArray *sink_list;
-#else
-extern GArray *sink_list;
-#endif
-
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 
@@ -19,13 +13,7 @@ typedef struct _sink_info {
 	gint mute;
 	guint8 channels;
 	pa_volume_t vol;
-	GArray *input_list;
+	GList *input_list;
 } sink_info;
-
-GArray *sink_list_alloc(void);
-void sink_list_free(GArray *sink_list);
-
-sink_info *sink_list_get(gint index);
-sink_input_info *sink_input_get(gint sink_list_index, gint index);
 
 #endif

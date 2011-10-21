@@ -14,7 +14,4 @@ typedef struct _sink_input_info {
 	pa_volume_t vol; // TOTO: exchange with the channel-list
 } sink_input_info;
 
-GArray *sink_input_list_alloc(void);
-void sink_input_list_free(GArray *sink_input_list);
-
 #endif

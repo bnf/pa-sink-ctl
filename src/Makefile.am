@@ -1,5 +1,5 @@
 bin_PROGRAMS = pa-sink-ctl
-pa_sink_ctl_SOURCES = interface.c pa-sink-ctl.c sink.c sink_input.c
+pa_sink_ctl_SOURCES = interface.c pa-sink-ctl.c
 EXTRA_pa_sink_ctl_SOURCES = unix_signal.c
 
 if !HAVE_SIGNALFD

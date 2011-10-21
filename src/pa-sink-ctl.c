@@ -13,13 +13,25 @@ gboolean context_ready = FALSE;
 static gboolean info_callbacks_finished = TRUE;
 static gboolean info_callbacks_blocked = FALSE;
 
+struct fetch_ctx {
+	GList *sinks;
+};
+
+GList *sink_list;
+
+#define list_append_struct(list, data) \
+	do { \
+		(list) = g_list_append((list), \
+				       g_memdup(&(data), sizeof(data))); \
+	} while (0)
+
 int
 main(int argc, char** argv)
 {
 	pa_mainloop_api  *mainloop_api = NULL;
 	pa_glib_mainloop *m            = NULL;
 
-	sink_list = sink_list_alloc();
+	sink_list = NULL;
 
 	GMainLoop *g_loop = g_main_loop_new(NULL, FALSE);
 
@@ -49,7 +61,7 @@ main(int argc, char** argv)
 	g_main_loop_run(g_loop);
 
 	interface_clear();
-	sink_list_free(sink_list);
+	g_list_free(sink_list);
 
 	pa_glib_mainloop_free(m);
 	g_main_loop_unref(g_loop);
@@ -112,6 +124,7 @@ context_state_callback(pa_context *c, gpointer userdata)
 	}
 }
 
+
 /*
  * the begin of the callback loops
  */
@@ -119,7 +132,7 @@ void
 get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpointer userdata)
 {
 	g_assert(userdata != NULL);
-	GArray *sink_list_tmp = userdata;
+	struct fetch_ctx *fetch_ctx = userdata;
 
 	if (is_last < 0) {
 		g_printerr("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
@@ -127,11 +140,11 @@ get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpoin
 	}
 
 	if (is_last) {
-		pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, sink_list_tmp));
+		pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, fetch_ctx));
 		return;
 	}
 
-	g_array_append_val(sink_list_tmp, ((sink_info) {
+	sink_info sink = {
 		.index = i->index,
 		.mute  = i->mute,
 		.vol   = pa_cvolume_avg(&i->volume),
@@ -139,8 +152,10 @@ get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpoin
 		.name = g_strdup(i->name),
 		.device = pa_proplist_contains(i->proplist, "device.product.name") ? 
 			g_strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
-		.input_list = sink_input_list_alloc()
-	}));
+		.input_list = NULL
+	};
+
+	list_append_struct(fetch_ctx->sinks, sink);
 }
 
 /*
@@ -150,7 +165,7 @@ void
 get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is_last, gpointer userdata)
 {
 	g_assert(userdata != NULL);
-	GArray *sink_list_tmp = userdata;
+	struct fetch_ctx *fetch_ctx = userdata;
 
 	if (is_last < 0) {
 		g_printerr("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
@@ -159,8 +174,9 @@ get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is
 
 	if (is_last) {
 		info_callbacks_finished = TRUE;
-		sink_list_free(sink_list);
-		sink_list = sink_list_tmp;
+		g_list_free_full(sink_list, g_free);
+		sink_list = fetch_ctx->sinks;
+		g_free(fetch_ctx);
 
 		print_sink_list();
 
@@ -173,7 +189,7 @@ get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is
 
 	if (!(i->client != PA_INVALID_INDEX)) return;
 
-	g_array_append_val(g_array_index(sink_list_tmp, sink_info, i->sink).input_list, ((sink_input_info) {
+	sink_input_info sink_input = {
 		.index = i->index,
 		.sink = i->sink,
 		.name = pa_proplist_contains(i->proplist, "application.name") ?
@@ -183,7 +199,10 @@ get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is
 		.channels = i->volume.channels,
 		.vol = pa_cvolume_avg(&i->volume),
 		.pid = NULL /* maybe obsolete */
-	}));
+	};
+
+	sink_info *sink = g_list_nth_data(fetch_ctx->sinks, i->sink);
+	list_append_struct(sink->input_list, sink_input);
 }
 
 void
@@ -207,5 +226,5 @@ collect_all_info(void)
 	if (!info_callbacks_finished)
 		return;
 	info_callbacks_finished = FALSE;
-	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, sink_list_alloc()));
+	pa_operation_unref(pa_context_get_sink_info_list(context, get_sink_info_callback, g_new0(struct fetch_ctx, 1)));
 }
