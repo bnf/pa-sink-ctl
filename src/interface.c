@@ -364,6 +364,15 @@ interface_set_status(const gchar *msg)
 static gboolean
 resize_gio(GIOChannel *source, GIOCondition condition, gpointer data)
 {
+	struct signalfd_siginfo fdsi;
+	ssize_t s;
+
+	g_assert(condition & G_IO_IN);
+
+	s = read(signal_fd, &fdsi, sizeof fdsi);
+	if (s != sizeof fdsi || fdsi.ssi_signo != SIGWINCH)
+		return FALSE;
+
 	return interface_resize(data);
 }
 #endif
@@ -403,6 +412,8 @@ interface_init(void)
 		sigemptyset(&mask);
 		sigaddset(&mask, SIGWINCH);
 
+		if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
+			exit(EXIT_FAILURE);
 		signal_fd = signalfd(-1, &mask, 0);
 		channel = g_io_channel_unix_new(signal_fd);
 		g_io_add_watch(channel, G_IO_IN, resize_gio, NULL);
