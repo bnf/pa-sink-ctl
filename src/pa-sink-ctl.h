@@ -36,17 +36,8 @@ struct context {
 };
 
 void
-collect_all_info(struct context *ctx);
-
-void
 quit(struct context *ctx);
 
-void
-context_state_callback(pa_context*, gpointer);
-void
-get_sink_info_callback(pa_context *, const pa_sink_info *, gint, gpointer);
-void
-get_sink_input_info_callback(pa_context *, const pa_sink_input_info*, gint, gpointer);
 void
 change_callback(pa_context* c, gint success, gpointer);
 
