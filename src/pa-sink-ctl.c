@@ -87,15 +87,16 @@ get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is
 	}
 
 	if (is_last) {
-		ctx->info_callbacks_finished = TRUE;
-		g_list_free_full(ctx->sink_list, g_free);
-		ctx->sink_list = ctx->tmp_sinks;
+		g_list_free_full(ctx->input_list, g_free);
+		ctx->input_list = ctx->tmp_inputs;
 
-		print_sink_list(ctx);
+		if (++ctx->info_callbacks_finished == 2) {
+			print_sink_list(ctx);
 
-		if (ctx->info_callbacks_blocked) {
-			ctx->info_callbacks_blocked = FALSE;
-			collect_all_info(ctx);
+			if (ctx->info_callbacks_blocked) {
+				ctx->info_callbacks_blocked = FALSE;
+				collect_all_info(ctx);
+			}
 		}
 		return;
 	}
@@ -114,8 +115,7 @@ get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is
 		.pid = NULL /* maybe obsolete */
 	};
 
-	sink_info *sink = g_list_nth_data(ctx->tmp_sinks, i->sink);
-	list_append_struct(sink->input_list, sink_input);
+	list_append_struct(ctx->tmp_inputs, sink_input);
 }
 
 /*
@@ -133,7 +133,17 @@ get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpoin
 	}
 
 	if (is_last) {
-		pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, ctx));
+		g_list_free_full(ctx->sink_list, g_free);
+		ctx->sink_list = ctx->tmp_sinks;
+
+		if (++ctx->info_callbacks_finished == 2) {
+			print_sink_list(ctx);
+			if (ctx->info_callbacks_blocked) {
+				ctx->info_callbacks_blocked = FALSE;
+				collect_all_info(ctx);
+			}
+		}
+
 		return;
 	}
 
@@ -145,12 +155,10 @@ get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpoin
 		.name = g_strdup(i->name),
 		.device = pa_proplist_contains(i->proplist, "device.product.name") ? 
 			g_strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
-		.input_list = NULL
 	};
 
 	list_append_struct(ctx->tmp_sinks, sink);
 }
-
 
 void
 quit(struct context *ctx)
@@ -173,11 +181,13 @@ change_callback(pa_context* c, gint success, gpointer userdata)
 static void
 collect_all_info(struct context *ctx)
 {
-	if (!ctx->info_callbacks_finished)
+	if (ctx->info_callbacks_finished < 2)
 		return;
-	ctx->info_callbacks_finished = FALSE;
+	ctx->info_callbacks_finished = 0;
 	ctx->tmp_sinks = NULL;
+	ctx->tmp_inputs = NULL;
 	pa_operation_unref(pa_context_get_sink_info_list(ctx->context, get_sink_info_callback, ctx));
+	pa_operation_unref(pa_context_get_sink_input_info_list(ctx->context, get_sink_input_info_callback, ctx));
 }
 
 int
@@ -187,7 +197,7 @@ main(int argc, char** argv)
 	pa_mainloop_api  *mainloop_api = NULL;
 	pa_glib_mainloop *m            = NULL;
 
-	ctx->info_callbacks_finished = TRUE;
+	ctx->info_callbacks_finished = 2;
 	ctx->info_callbacks_blocked = FALSE;
 	ctx->sink_list = NULL;
 	ctx->max_name_len = 0;
@@ -221,7 +231,8 @@ main(int argc, char** argv)
 	g_main_loop_run(ctx->loop);
 
 	interface_clear(ctx);
-	g_list_free(ctx->sink_list);
+	g_list_free_full(ctx->sink_list, g_free);
+	g_list_free_full(ctx->input_list, g_free);
 
 	pa_glib_mainloop_free(m);
 	g_main_loop_unref(ctx->loop);

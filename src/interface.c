@@ -22,6 +22,38 @@
 #define SELECTED_UNKNOWN -2
 #define SELECTED_SINK -1
 
+static int
+sink_input_len(struct context *ctx, sink_info *sink)
+{
+	int len = 0;
+	GList *l;
+
+	for (l = ctx->input_list; l; l = l->next) {
+		sink_input_info *input = l->data;
+
+		if (input->sink == sink->index)
+			len++;
+	}
+
+	return len;
+}
+
+static sink_input_info *
+sink_get_nth_input(struct context *ctx, sink_info *sink, int n)
+{
+	GList *l;
+	int i;
+
+	for (l = ctx->input_list; l; l = l->next) {
+		sink_input_info *input = l->data;
+		if (input->sink != sink->index)
+			continue;
+		if (i++ == n)
+			return input;
+	}
+
+	return NULL;
+}
 
 static gboolean
 interface_resize(gpointer data)
@@ -72,17 +104,19 @@ print_volume(struct context *ctx, pa_volume_t volume, int mute, int y)
 }
 
 static void
-print_input_list(struct context *ctx, GList *input_list, gint sink_num)
+print_input_list(struct context *ctx, sink_info *sink, gint sink_num)
 {
 	GList *l;
 	gint offset = sink_num + 3 /* win border + empty line + 1th sink */;
 	gint i;
 
 	for (l = ctx->sink_list, i = 0; l && i < sink_num; l = l->next,i++)
-		offset += g_list_length(((sink_info *)l->data)->input_list);
+		offset += sink_input_len(ctx, l->data);
 
-	for (l = input_list, i = 0; l; l = l->next,++i) {
+	for (l = ctx->input_list, i = 0; l; l = l->next,++i) {
 		sink_input_info *input = l->data;
+		if (input->sink != sink->index)
+			continue;
 		gboolean selected = (ctx->chooser_sink == sink_num && ctx->chooser_input == i);
 
 		if (selected)
@@ -103,7 +137,7 @@ print_input_list(struct context *ctx, GList *input_list, gint sink_num)
 static void
 set_max_name_len(struct context *ctx)
 {
-	GList *l,*k;
+	GList *l;
 	guint len = 0;
 	ctx->max_name_len = len;
 
@@ -114,15 +148,15 @@ set_max_name_len(struct context *ctx)
 
 		if (len > ctx->max_name_len)
 			ctx->max_name_len = len;
+	}
 
-		for (k = sink->input_list; k; k = k->next) {
-			sink_input_info *input = k->data;
+	for (l = ctx->input_list; l; l = l->next) {
+		sink_input_info *input = l->data;
 
-			len = strlen(input->name) + 1 /* indentation */;
+		len = strlen(input->name) + 1 /* indentation */;
 
-			if (len > ctx->max_name_len)
-				ctx->max_name_len = len;
-		}
+		if (len > ctx->max_name_len)
+			ctx->max_name_len = len;
 	}
 }
 
@@ -147,8 +181,10 @@ print_sink_list(struct context *ctx)
 		ctx->chooser_input = SELECTED_SINK; 
 		/* step through inputs for current sink and find the selected */
 		sink_info *sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		for (l = sink->input_list, i = 0; l; l = l->next,++i) {
+		for (l = ctx->input_list, i = 0; l; l = l->next,++i) {
 			sink_input_info *input = l->data;
+			if (input->sink != sink->index)
+				continue;
 			if (ctx->selected_index == input->index) {
 				ctx->chooser_input = i;
 				break;
@@ -171,9 +207,9 @@ print_sink_list(struct context *ctx)
 			wattroff(ctx->menu_win, A_REVERSE);
 		print_volume(ctx, sink->vol, sink->mute, y+i+offset);
 
-		print_input_list(ctx, sink->input_list, i);
+		print_input_list(ctx, sink, i);
 
-		offset += g_list_length(sink->input_list);
+		offset += sink_input_len(ctx, sink);
 	}
 	wrefresh(ctx->menu_win);
 }
@@ -198,7 +234,7 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 		if (ctx->chooser_input == SELECTED_SINK && ctx->chooser_sink > 0) {
 			sink = g_list_nth_data(ctx->sink_list, --ctx->chooser_sink);
 			/* automatic SELECTED_SINK (=-1) assignment if length = 0 */
-			ctx->chooser_input = (gint)g_list_length(sink->input_list) - 1;
+			ctx->chooser_input = sink_input_len(ctx, sink) - 1;
 		}
 
 		else if (ctx->chooser_input >= 0)
@@ -210,11 +246,11 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 	case 's':
 	case KEY_DOWN:
 		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		if (ctx->chooser_input == ((gint)g_list_length(sink->input_list) - 1) && ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1) {
+		if (ctx->chooser_input == (sink_input_len(ctx, sink) - 1) && ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1) {
 			++ctx->chooser_sink;
 			ctx->chooser_input = SELECTED_SINK;
 		}
-		else if (ctx->chooser_input < ((gint)g_list_length(sink->input_list) - 1))
+		else if (ctx->chooser_input < (sink_input_len(ctx, sink) - 1))
 			++ctx->chooser_input;
 		print_sink_list(ctx);
 		break;
@@ -233,7 +269,7 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 		pa_operation* (*volume_set) (pa_context*, guint32, const pa_cvolume*, pa_context_success_cb_t, gpointer);
 
 		if (ctx->chooser_input >= 0) {
-			sink_input_info *input = g_list_nth_data(sink->input_list, ctx->chooser_input);
+			sink_input_info *input = sink_get_nth_input(ctx, sink, ctx->chooser_input);
 			index      = input->index;
 			volume     = (pa_cvolume) {.channels = input->channels};
 			tmp_vol    = input->vol; 
@@ -268,7 +304,7 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 		pa_operation* (*mute_set) (pa_context*, guint32, int, pa_context_success_cb_t, void*);
 
 		if (ctx->chooser_input >= 0) {
-			sink_input_info *input = g_list_nth_data(sink->input_list, ctx->chooser_input);
+			sink_input_info *input = sink_get_nth_input(ctx, sink, ctx->chooser_input);
 			index    = input->index;
 			mute     = !input->mute;
 			mute_set = pa_context_set_sink_input_mute;
@@ -288,7 +324,7 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 		if (ctx->chooser_input == SELECTED_SINK)
 			break;
 		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		sink_input_info *input = g_list_nth_data(sink->input_list, ctx->chooser_input);
+		sink_input_info *input = sink_get_nth_input(ctx, sink, ctx->chooser_input);
 		ctx->selected_index = input->index;
 		if (ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1)
 			ctx->chooser_sink++;
