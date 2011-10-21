@@ -96,7 +96,9 @@ print_input_list(gint sink_num)
 		offset += sink_list_get(i)->input_list->len;
 
 	for (gint i = 0; i < sink_list_get(sink_num)->input_list->len; ++i) {
-		if (chooser_sink == sink_num && chooser_input == i)
+		gboolean selected = (chooser_sink == sink_num && chooser_input == i);
+
+		if (selected)
 			wattron(menu_win, A_REVERSE);
 
 		mvwprintw(menu_win, offset + i, 2, "%*s%-*s",
@@ -104,7 +106,7 @@ print_input_list(gint sink_num)
 			max_name_len - 1,
 			sink_input_get(sink_num, i)->name);
 
-		if (chooser_sink == sink_num && chooser_input == i)
+		if (selected)
 			wattroff(menu_win, A_REVERSE);
 
 		print_volume(sink_input_get(sink_num, i)->vol,
@@ -169,7 +171,9 @@ print_sink_list(void)
 	}
 	
 	for (i = 0; i < sink_list->len; ++i) {
-		if (i == chooser_sink && chooser_input == SELECTED_SINK)
+		gboolean selected = (i == chooser_sink && chooser_input == SELECTED_SINK);
+
+		if (selected)
 			wattron(menu_win, A_REVERSE);
 
 		mvwprintw(menu_win, y+i+offset, x, "%2u %-*s",
@@ -177,7 +181,7 @@ print_sink_list(void)
 			max_name_len,
 			sink_list_get(i)->device != NULL ? sink_list_get(i)->device : sink_list_get(i)->name);
 		
-		if (i == chooser_sink && chooser_input == SELECTED_SINK)
+		if (selected)
 			wattroff(menu_win, A_REVERSE);
 		print_volume(sink_list_get(i)->vol, sink_list_get(i)->mute, y+i+offset);
 
