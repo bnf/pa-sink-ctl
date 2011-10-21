@@ -4,9 +4,12 @@
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 
-void print_sink_list(void);
-void interface_init(void);
-void interface_clear(void);
-void interface_set_status(const gchar *);
+
+struct context;
+
+void print_sink_list(struct context *ctx);
+void interface_init(struct context *ctx);
+void interface_clear(struct context *ctx);
+void interface_set_status(struct context *ctx, const gchar *);
 
 #endif
