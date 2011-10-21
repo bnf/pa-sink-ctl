@@ -332,6 +332,7 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
 		/* ctx->chooser_input needs to be derived from $ctx->selected_index */
 		ctx->chooser_input = SELECTED_UNKNOWN; 
+		ctx->block_for_selected_index = TRUE;
 		pa_operation_unref(pa_context_move_sink_input_by_index(ctx->context, ctx->selected_index,
 								       sink->index,
 								       change_callback, NULL));

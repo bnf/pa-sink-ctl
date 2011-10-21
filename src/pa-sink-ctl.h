@@ -31,6 +31,7 @@ struct context {
 	GList *input_list;
 
 	gchar *status;
+	gboolean block_for_selected_index;
 };
 
 void
