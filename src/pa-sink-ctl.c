@@ -2,7 +2,6 @@
 #include <pulse/pulseaudio.h>
 #include <pulse/glib-mainloop.h>
 
-#include "sink_input.h"
 #include "sink.h"
 #include "interface.h"
 #include "pa-sink-ctl.h"

@@ -11,4 +11,4 @@ AM_CPPFLAGS = $(PULSE_CFLAGS) $(PULSE_MAINLOOP_CFLAGS) $(GLIB_CFLAGS) \
 	      -include $(top_builddir)/config.h
 pa_sink_ctl_LDADD = $(GLIB_LIBS) $(PULSE_LIBS) $(PULSE_MAINLOOP_LIBS) $(CURSES_LIBS)
 
-noinst_HEADERS = interface.h pa-sink-ctl.h sink.h sink_input.h unix_signal.h
+noinst_HEADERS = interface.h pa-sink-ctl.h sink.h unix_signal.h

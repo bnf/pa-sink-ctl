@@ -4,8 +4,6 @@
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 
-#include "sink_input.h"
-
 typedef struct _sink_info {
 	guint32 index;
 	gchar* name;
@@ -15,5 +13,15 @@ typedef struct _sink_info {
 	pa_volume_t vol;
 	GList *input_list;
 } sink_info;
+
+typedef struct _sink_input_info {
+	guint32 index;
+	guint32 sink;
+	gchar *name;
+	gchar *pid;	// maybe useless?!!?
+	gint mute;
+	guint8 channels;
+	pa_volume_t vol; // TOTO: exchange with the channel-list
+} sink_input_info;
 
 #endif
