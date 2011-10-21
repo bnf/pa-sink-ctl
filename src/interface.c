@@ -104,33 +104,32 @@ print_volume(struct context *ctx, pa_volume_t volume, int mute, int y)
 }
 
 static void
-print_input_list(struct context *ctx, sink_info *sink, gint sink_num)
+print_input_list(struct context *ctx, sink_info *sink, gint sink_num, gint *poffset)
 {
 	GList *l;
-	gint offset = sink_num + 3 /* win border + empty line + 1th sink */;
+	gint offset = *poffset;
 	gint i;
 
-	for (l = ctx->sink_list, i = 0; l && i < sink_num; l = l->next,i++)
-		offset += sink_input_len(ctx, l->data);
-
-	for (l = ctx->input_list, i = 0; l; l = l->next,++i) {
+	for (l = ctx->input_list, i = -1; l; l = l->next) {
 		sink_input_info *input = l->data;
 		if (input->sink != sink->index)
 			continue;
-		gboolean selected = (ctx->chooser_sink == sink_num && ctx->chooser_input == i);
+		gboolean selected = (ctx->chooser_sink == sink_num && ctx->chooser_input == ++i);
 
 		if (selected)
 			wattron(ctx->menu_win, A_REVERSE);
 
-		mvwprintw(ctx->menu_win, offset + i, 2, "%*s%-*s",
+		mvwprintw(ctx->menu_win, offset, 2, "%*s%-*s",
 			  2+1+1, "", /* space for index number + indentation*/
 			  ctx->max_name_len - 1, input->name);
 
 		if (selected)
 			wattroff(ctx->menu_win, A_REVERSE);
 
-		print_volume(ctx, input->vol, input->mute, offset + i);
+		print_volume(ctx, input->vol, input->mute, offset);
+		offset++;
 	}
+	*poffset = offset;
 }
 
 /* looking for the longest name length of all SINK's and INPUT's */
@@ -165,8 +164,7 @@ print_sink_list(struct context *ctx)
 {
 	gint i = 0;
 	gint x = 2;
-	gint y = 2;
-	gint offset = 0;
+	gint offset = 2; /* top border + 1 empty line */
 	GList *l;
 
 	/* looking for the longest name for right indentation */
@@ -181,10 +179,11 @@ print_sink_list(struct context *ctx)
 		ctx->chooser_input = SELECTED_SINK; 
 		/* step through inputs for current sink and find the selected */
 		sink_info *sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		for (l = ctx->input_list, i = 0; l; l = l->next,++i) {
+		for (l = ctx->input_list, i = -1; l; l = l->next) {
 			sink_input_info *input = l->data;
 			if (input->sink != sink->index)
 				continue;
+			++i;
 			if (ctx->selected_index == input->index) {
 				ctx->chooser_input = i;
 				break;
@@ -199,17 +198,16 @@ print_sink_list(struct context *ctx)
 		if (selected)
 			wattron(ctx->menu_win, A_REVERSE);
 
-		mvwprintw(ctx->menu_win, y+i+offset, x, "%2u %-*s",
+		mvwprintw(ctx->menu_win, offset, x, "%2u %-*s",
 			  sink->index, ctx->max_name_len,
 			  sink->device != NULL ? sink->device : sink->name);
 
 		if (selected)
 			wattroff(ctx->menu_win, A_REVERSE);
-		print_volume(ctx, sink->vol, sink->mute, y+i+offset);
+		print_volume(ctx, sink->vol, sink->mute, offset);
 
-		print_input_list(ctx, sink, i);
-
-		offset += sink_input_len(ctx, sink);
+		offset++;
+		print_input_list(ctx, sink, i, &offset);
 	}
 	wrefresh(ctx->menu_win);
 }
