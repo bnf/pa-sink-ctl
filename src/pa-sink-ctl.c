@@ -42,7 +42,7 @@ main(int argc, char** argv)
 		g_printerr("error: pa_context_new() failed.\n");
 		return -1;
 	}
-	
+
 	// define callback for connection init
 	pa_context_set_state_callback(ctx->context, context_state_callback, ctx);
 	if (pa_context_connect(ctx->context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL)) {
@@ -82,40 +82,39 @@ context_state_callback(pa_context *c, gpointer userdata)
 
 	ctx->context_ready = FALSE;
 	switch (pa_context_get_state(c)) {
-		case PA_CONTEXT_CONNECTING:
-			interface_set_status(ctx, "connecting...");
-			break;
-		case PA_CONTEXT_AUTHORIZING:
-			interface_set_status(ctx, "authorizing...");
-			break;
-		case PA_CONTEXT_SETTING_NAME:
-			interface_set_status(ctx, "setting name...");
-			break;
+	case PA_CONTEXT_CONNECTING:
+		interface_set_status(ctx, "connecting...");
+		break;
+	case PA_CONTEXT_AUTHORIZING:
+		interface_set_status(ctx, "authorizing...");
+		break;
+	case PA_CONTEXT_SETTING_NAME:
+		interface_set_status(ctx, "setting name...");
+		break;
 
-		case PA_CONTEXT_READY:
-			collect_all_info(ctx);
-			pa_context_set_subscribe_callback(c, subscribe_cb, ctx);
-			g_assert((ctx->op = pa_context_subscribe(c, (pa_subscription_mask_t) (
-					PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT
-					), NULL, NULL)));
-			ctx->context_ready = TRUE;
-			interface_set_status(ctx, "ready to process events.");
-			break;
-		case PA_CONTEXT_FAILED:
-			interface_set_status(ctx, "cannot connect!");
-			break;
+	case PA_CONTEXT_READY:
+		collect_all_info(ctx);
+		pa_context_set_subscribe_callback(c, subscribe_cb, ctx);
+		pa_subscription_mask_t mask = PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT;
+		g_assert((ctx->op = pa_context_subscribe(c, (pa_subscription_mask_t) (mask), NULL, NULL)));
+		ctx->context_ready = TRUE;
+		interface_set_status(ctx, "ready to process events.");
+		break;
+	case PA_CONTEXT_FAILED:
+		interface_set_status(ctx, "cannot connect!");
+		break;
 
-		case PA_CONTEXT_TERMINATED:
-			g_assert(ctx->op != NULL);
-			pa_operation_cancel(ctx->op);
-			pa_operation_unref(ctx->op);
-			ctx->op = NULL;
-			interface_set_status(ctx, "connection terminated.");
-			g_main_loop_quit(ctx->loop);
-			break;
-		default:
-			interface_set_status(ctx, "unknown state");
-			break;
+	case PA_CONTEXT_TERMINATED:
+		g_assert(ctx->op != NULL);
+		pa_operation_cancel(ctx->op);
+		pa_operation_unref(ctx->op);
+		ctx->op = NULL;
+		interface_set_status(ctx, "connection terminated.");
+		g_main_loop_quit(ctx->loop);
+		break;
+	default:
+		interface_set_status(ctx, "unknown state");
+		break;
 	}
 }
 

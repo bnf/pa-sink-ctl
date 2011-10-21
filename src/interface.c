@@ -43,7 +43,7 @@ interface_resize(gpointer data)
 	wresize(ctx->menu_win, height - H_MSG_BOX, width);
 	wresize(ctx->msg_win, H_MSG_BOX, width);
 	mvwin(ctx->msg_win, height - H_MSG_BOX, 0);
-	
+
 	/* NULL := display old status */
 	interface_set_status(ctx, NULL); 
 	print_sink_list(ctx);
@@ -114,10 +114,10 @@ set_max_name_len(struct context *ctx)
 
 		if (len > ctx->max_name_len)
 			ctx->max_name_len = len;
-		
+
 		for (k = sink->input_list; k; k = k->next) {
 			sink_input_info *input = k->data;
-			
+
 			len = strlen(input->name) + 1 /* indentation */;
 
 			if (len > ctx->max_name_len)
@@ -137,7 +137,7 @@ print_sink_list(struct context *ctx)
 
 	/* looking for the longest name for right indentation */
 	set_max_name_len(ctx);
-	
+
 	werase(ctx->menu_win);
 	box(ctx->menu_win, 0, 0);
 
@@ -155,7 +155,7 @@ print_sink_list(struct context *ctx)
 			}
 		}
 	}
-	
+
 	for (l = ctx->sink_list, i = 0; l; l = l->next,++i) {
 		sink_info *sink = l->data;
 		gboolean selected = (i == ctx->chooser_sink && ctx->chooser_input == SELECTED_SINK);
@@ -166,7 +166,7 @@ print_sink_list(struct context *ctx)
 		mvwprintw(ctx->menu_win, y+i+offset, x, "%2u %-*s",
 			  sink->index, ctx->max_name_len,
 			  sink->device != NULL ? sink->device : sink->name);
-		
+
 		if (selected)
 			wattroff(ctx->menu_win, A_REVERSE);
 		print_volume(ctx, sink->vol, sink->mute, y+i+offset);
@@ -185,133 +185,128 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 	gint c;
 	gboolean volume_increment = TRUE;
 	sink_info *sink = NULL;
+	guint32 index;
 
 	if (!ctx->context_ready)
 		return TRUE;
 
 	c = wgetch(ctx->menu_win);
 	switch (c) {
-		case 'k':
-		case 'w':
-		case KEY_UP:
-			if (ctx->chooser_input == SELECTED_SINK && ctx->chooser_sink > 0) {
-				sink = g_list_nth_data(ctx->sink_list, --ctx->chooser_sink);
-				/* automatic SELECTED_SINK (=-1) assignment if length = 0 */
-				ctx->chooser_input = (gint)g_list_length(sink->input_list) - 1;
-			}
-
-			else if (ctx->chooser_input >= 0)
-				--ctx->chooser_input;
-			print_sink_list(ctx);
-			break;
-
-		case 'j':
-		case 's':
-		case KEY_DOWN:
-			sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-			if (ctx->chooser_input == ((gint)g_list_length(sink->input_list) - 1) && ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1) {
-					++ctx->chooser_sink;
-					ctx->chooser_input = SELECTED_SINK;
-			}
-			else if (ctx->chooser_input < ((gint)g_list_length(sink->input_list) - 1))
-				++ctx->chooser_input;
-			print_sink_list(ctx);
-			break;
-
-		case 'h':
-		case 'a':
-		case KEY_LEFT:
-			volume_increment = FALSE;
-			/* fall through */
-		case 'l':
-		case 'd':
-		case KEY_RIGHT: {
-			guint32 index;
-			pa_cvolume volume;
-			pa_volume_t tmp_vol;
-			pa_operation* (*volume_set) (pa_context*, guint32, const pa_cvolume*, pa_context_success_cb_t, gpointer);
-
-			sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-			if (ctx->chooser_input >= 0) {
-				sink_input_info *input = g_list_nth_data(sink->input_list, ctx->chooser_input);
-				index      = input->index;
-				volume     = (pa_cvolume) {.channels = input->channels};
-				tmp_vol    = input->vol; 
-				volume_set = pa_context_set_sink_input_volume;
-			} else if (ctx->chooser_input == SELECTED_SINK) {
-				index      = sink->index;
-				volume     = (pa_cvolume) {.channels = sink->channels};
-				tmp_vol    = sink->vol;
-				volume_set = pa_context_set_sink_volume_by_index;
-			} else
-				break;
-
-			pa_cvolume_set(&volume, volume.channels, tmp_vol);
-			pa_volume_t inc = 2 * PA_VOLUME_NORM / 100;
-
-			if (volume_increment)
-				if (PA_VOLUME_NORM > tmp_vol && PA_VOLUME_NORM - tmp_vol > inc)
-					pa_cvolume_inc(&volume, inc);
-				else
-					pa_cvolume_set(&volume, volume.channels, PA_VOLUME_NORM);
-			else
-				pa_cvolume_dec(&volume, inc);
-
-
-			pa_operation_unref(volume_set(ctx->context, index, &volume, change_callback, ctx));
-			break;
+	case 'k':
+	case 'w':
+	case KEY_UP:
+		if (ctx->chooser_input == SELECTED_SINK && ctx->chooser_sink > 0) {
+			sink = g_list_nth_data(ctx->sink_list, --ctx->chooser_sink);
+			/* automatic SELECTED_SINK (=-1) assignment if length = 0 */
+			ctx->chooser_input = (gint)g_list_length(sink->input_list) - 1;
 		}
 
+		else if (ctx->chooser_input >= 0)
+			--ctx->chooser_input;
+		print_sink_list(ctx);
+		break;
 
-		case 'm':
-		case 'x':
-		case 'M': {
-			guint32 index;
-			gint mute;
-			pa_operation* (*mute_set) (pa_context*, guint32, int, pa_context_success_cb_t, void*);
-
-			sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-			if (ctx->chooser_input >= 0) {
-				sink_input_info *input = g_list_nth_data(sink->input_list, ctx->chooser_input);
-				index    = input->index;
-				mute     = !input->mute;
-				mute_set = pa_context_set_sink_input_mute;
-			} else if (ctx->chooser_input == SELECTED_SINK) {
-				index    = sink->index;
-				mute     = !sink->mute;
-				mute_set = pa_context_set_sink_mute_by_index;
-			} else
-				break;
-
-			pa_operation_unref(mute_set(ctx->context, index, mute, change_callback, ctx));
-			break;
+	case 'j':
+	case 's':
+	case KEY_DOWN:
+		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+		if (ctx->chooser_input == ((gint)g_list_length(sink->input_list) - 1) && ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1) {
+			++ctx->chooser_sink;
+			ctx->chooser_input = SELECTED_SINK;
 		}
+		else if (ctx->chooser_input < ((gint)g_list_length(sink->input_list) - 1))
+			++ctx->chooser_input;
+		print_sink_list(ctx);
+		break;
 
-		case '\n':
-		case '\t':
-		case ' ':
-			if (ctx->chooser_input == SELECTED_SINK)
-				break;
-			sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+	case 'h':
+	case 'a':
+	case KEY_LEFT:
+		volume_increment = FALSE;
+		/* fall through */
+	case 'l':
+	case 'd':
+	case KEY_RIGHT:
+		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+		pa_cvolume volume;
+		pa_volume_t tmp_vol;
+		pa_operation* (*volume_set) (pa_context*, guint32, const pa_cvolume*, pa_context_success_cb_t, gpointer);
+
+		if (ctx->chooser_input >= 0) {
 			sink_input_info *input = g_list_nth_data(sink->input_list, ctx->chooser_input);
-			ctx->selected_index = input->index;
-			if (ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1)
-				ctx->chooser_sink++;
+			index      = input->index;
+			volume     = (pa_cvolume) {.channels = input->channels};
+			tmp_vol    = input->vol; 
+			volume_set = pa_context_set_sink_input_volume;
+		} else if (ctx->chooser_input == SELECTED_SINK) {
+			index      = sink->index;
+			volume     = (pa_cvolume) {.channels = sink->channels};
+			tmp_vol    = sink->vol;
+			volume_set = pa_context_set_sink_volume_by_index;
+		} else
+			break;
+
+		pa_cvolume_set(&volume, volume.channels, tmp_vol);
+		pa_volume_t inc = 2 * PA_VOLUME_NORM / 100;
+
+		if (volume_increment)
+			if (PA_VOLUME_NORM > tmp_vol && PA_VOLUME_NORM - tmp_vol > inc)
+				pa_cvolume_inc(&volume, inc);
 			else
-				ctx->chooser_sink = 0;
+				pa_cvolume_set(&volume, volume.channels, PA_VOLUME_NORM);
+		else
+			pa_cvolume_dec(&volume, inc);
 
-			sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-			/* ctx->chooser_input needs to be derived from $ctx->selected_index */
-			ctx->chooser_input = SELECTED_UNKNOWN; 
-			pa_operation_unref(pa_context_move_sink_input_by_index(ctx->context, ctx->selected_index,
-									       sink->index,
-									       change_callback, NULL));
+
+		pa_operation_unref(volume_set(ctx->context, index, &volume, change_callback, ctx));
+		break;
+	case 'm':
+	case 'x':
+	case 'M':
+		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+		gint mute;
+		pa_operation* (*mute_set) (pa_context*, guint32, int, pa_context_success_cb_t, void*);
+
+		if (ctx->chooser_input >= 0) {
+			sink_input_info *input = g_list_nth_data(sink->input_list, ctx->chooser_input);
+			index    = input->index;
+			mute     = !input->mute;
+			mute_set = pa_context_set_sink_input_mute;
+		} else if (ctx->chooser_input == SELECTED_SINK) {
+			index    = sink->index;
+			mute     = !sink->mute;
+			mute_set = pa_context_set_sink_mute_by_index;
+		} else
 			break;
 
-		case 'q':
-		default:
-			quit(ctx);
+		pa_operation_unref(mute_set(ctx->context, index, mute, change_callback, ctx));
+		break;
+
+	case '\n':
+	case '\t':
+	case ' ':
+		if (ctx->chooser_input == SELECTED_SINK)
 			break;
+		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+		sink_input_info *input = g_list_nth_data(sink->input_list, ctx->chooser_input);
+		ctx->selected_index = input->index;
+		if (ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1)
+			ctx->chooser_sink++;
+		else
+			ctx->chooser_sink = 0;
+
+		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+		/* ctx->chooser_input needs to be derived from $ctx->selected_index */
+		ctx->chooser_input = SELECTED_UNKNOWN; 
+		pa_operation_unref(pa_context_move_sink_input_by_index(ctx->context, ctx->selected_index,
+								       sink->index,
+								       change_callback, NULL));
+		break;
+
+	case 'q':
+	default:
+		quit(ctx);
+		break;
 	}
 
 	return TRUE;
@@ -368,7 +363,7 @@ interface_init(struct context *ctx)
 
 	ctx->chooser_sink  = 0;		/* Selected sink-device. 0 is the first device */
 	ctx->chooser_input = SELECTED_SINK;	/* Selected input of the current sink-device.  */
-					/* SELECTED_SINK refers to sink-device itself  */
+	/* SELECTED_SINK refers to sink-device itself  */
 	initscr();
 	clear();
 
@@ -381,7 +376,7 @@ interface_init(struct context *ctx)
 	/* 0,0,0,0 := fullscreen */
 	ctx->menu_win = newwin(0, 0, 0, 0);
 	ctx->msg_win  = newwin(0, 0, 0, 0);
-	
+
 	/* multichar keys are mapped to one char */
 	keypad(ctx->menu_win, TRUE);
 
@@ -413,6 +408,6 @@ interface_init(struct context *ctx)
 	ctx->input_source_id = g_io_add_watch(input_channel, G_IO_IN,
 					      interface_get_input, ctx);
 	g_io_channel_unref(input_channel);
-	
+
 	refresh();
 }
