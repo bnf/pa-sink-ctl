@@ -25,14 +25,10 @@ struct context {
 
 	guint max_name_len;
 
-	int info_callbacks_finished;
-	gboolean info_callbacks_blocked;
 	GMainLoop *loop;
 
 	GList *sink_list;
 	GList *input_list;
-	GList *tmp_sinks;
-	GList *tmp_inputs;
 
 	gchar *status;
 };

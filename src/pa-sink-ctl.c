@@ -12,18 +12,151 @@
 				       g_memdup(&(data), sizeof(data))); \
 	} while (0)
 
+static sink_input_info *
+find_sink_input_by_idx(struct context *ctx, gint idx)
+{
+	GList *l;
+
+	for (l = ctx->input_list; l; l = l->next) {
+		sink_input_info *input = l->data;
+		if (input->index == idx)
+			return input;
+	}
+
+	return NULL;
+}
+
+static sink_info *
+find_sink_by_idx(struct context *ctx, gint idx)
+{
+	GList *l;
+
+	for (l = ctx->sink_list; l; l = l->next) {
+		sink_info *sink = l->data;
+		if (sink->index == idx)
+			return sink;
+	}
+
+	return NULL;
+}
+
+/*
+ * is called after sink-input
+ */
 static void
-collect_all_info(struct context *ctx);
+get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is_last, gpointer userdata)
+{
+	g_assert(userdata != NULL);
+	struct context *ctx = userdata;
+
+	if (is_last < 0) {
+		g_printerr("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
+		return;
+	}
+
+	if (is_last) {
+		print_sink_list(ctx);
+		return;
+	}
+
+	if (!(i->client != PA_INVALID_INDEX)) return;
+
+	sink_input_info sink_input = {
+		.index = i->index,
+		.sink = i->sink,
+		.name = pa_proplist_contains(i->proplist, "application.name") ?
+			g_strdup(pa_proplist_gets(i->proplist, "application.name")):
+			g_strdup(i->name),
+		.mute = i->mute,
+		.channels = i->volume.channels,
+		.vol = pa_cvolume_avg(&i->volume),
+		.pid = NULL /* maybe obsolete */
+	};
+
+	sink_input_info *inlist = find_sink_input_by_idx(ctx, i->index);
+	if (inlist)
+		*inlist = sink_input;
+	else
+		list_append_struct(ctx->input_list, sink_input);
+}
+
+/*
+ * the begin of the callback loops
+ */
+static void
+get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpointer userdata)
+{
+	g_assert(userdata != NULL);
+	struct context *ctx = userdata;
+
+	if (is_last < 0) {
+		g_printerr("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
+		quit(ctx);
+	}
+
+	if (is_last) {
+		print_sink_list(ctx);
+		return;
+	}
+
+	sink_info sink = {
+		.index = i->index,
+		.mute  = i->mute,
+		.vol   = pa_cvolume_avg(&i->volume),
+		.channels = i->volume.channels,
+		.name = g_strdup(i->name),
+		.device = pa_proplist_contains(i->proplist, "device.product.name") ? 
+			g_strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
+	};
+
+	sink_info *inlist = find_sink_by_idx(ctx, i->index);
+	if (inlist)
+		*inlist = sink;
+	else
+		list_append_struct(ctx->sink_list, sink);
+}
 
 static void
 subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 idx, gpointer userdata)
 {
 	struct context *ctx = userdata;
+	pa_operation *op;
+	gpointer object;
 
-	if (!ctx->info_callbacks_finished)
-		ctx->info_callbacks_blocked = TRUE;
-	else
-		collect_all_info(ctx);
+	switch (t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) {
+	case PA_SUBSCRIPTION_EVENT_NEW:
+	case PA_SUBSCRIPTION_EVENT_CHANGE:
+		switch (t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) {
+		case PA_SUBSCRIPTION_EVENT_SINK:
+			op = pa_context_get_sink_info_by_index(c, idx, get_sink_info_callback, ctx);
+			pa_operation_unref(op);
+			break;
+		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
+			op = pa_context_get_sink_input_info(c, idx, get_sink_input_info_callback, ctx);
+			pa_operation_unref(op);
+			break;
+		}
+		break;
+	case PA_SUBSCRIPTION_EVENT_REMOVE:
+		switch (t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) {
+		case PA_SUBSCRIPTION_EVENT_SINK:
+			object = find_sink_by_idx(ctx, idx);
+			ctx->sink_list = g_list_remove(ctx->sink_list, object);
+			g_free(object);
+			break;
+		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
+			object = find_sink_input_by_idx(ctx, idx);
+			ctx->input_list = g_list_remove(ctx->input_list, object);
+			g_free(object);
+			break;
+		default:
+			return;
+		}
+		print_sink_list(ctx);
+		break;
+	default:
+		break;
+	}
 }
 
 /*
@@ -47,10 +180,12 @@ context_state_callback(pa_context *c, gpointer userdata)
 		break;
 
 	case PA_CONTEXT_READY:
-		collect_all_info(ctx);
+		pa_operation_unref(pa_context_get_sink_info_list(c, get_sink_info_callback, ctx));
+		pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, ctx));
+
 		pa_context_set_subscribe_callback(c, subscribe_cb, ctx);
 		pa_subscription_mask_t mask = PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT;
-		g_assert((ctx->op = pa_context_subscribe(c, (pa_subscription_mask_t) (mask), NULL, NULL)));
+		g_assert((ctx->op = pa_context_subscribe(c, mask, NULL, NULL)));
 		ctx->context_ready = TRUE;
 		interface_set_status(ctx, "ready to process events.");
 		break;
@@ -72,94 +207,6 @@ context_state_callback(pa_context *c, gpointer userdata)
 	}
 }
 
-/*
- * is called after sink-input
- */
-static void
-get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is_last, gpointer userdata)
-{
-	g_assert(userdata != NULL);
-	struct context *ctx = userdata;
-
-	if (is_last < 0) {
-		g_printerr("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
-		return;
-	}
-
-	if (is_last) {
-		g_list_free_full(ctx->input_list, g_free);
-		ctx->input_list = ctx->tmp_inputs;
-
-		if (++ctx->info_callbacks_finished == 2) {
-			print_sink_list(ctx);
-
-			if (ctx->info_callbacks_blocked) {
-				ctx->info_callbacks_blocked = FALSE;
-				collect_all_info(ctx);
-			}
-		}
-		return;
-	}
-
-	if (!(i->client != PA_INVALID_INDEX)) return;
-
-	sink_input_info sink_input = {
-		.index = i->index,
-		.sink = i->sink,
-		.name = pa_proplist_contains(i->proplist, "application.name") ?
-			g_strdup(pa_proplist_gets(i->proplist, "application.name")):
-			g_strdup(i->name),
-		.mute = i->mute,
-		.channels = i->volume.channels,
-		.vol = pa_cvolume_avg(&i->volume),
-		.pid = NULL /* maybe obsolete */
-	};
-
-	list_append_struct(ctx->tmp_inputs, sink_input);
-}
-
-/*
- * the begin of the callback loops
- */
-static void
-get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpointer userdata)
-{
-	g_assert(userdata != NULL);
-	struct context *ctx = userdata;
-
-	if (is_last < 0) {
-		g_printerr("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
-		quit(ctx);
-	}
-
-	if (is_last) {
-		g_list_free_full(ctx->sink_list, g_free);
-		ctx->sink_list = ctx->tmp_sinks;
-
-		if (++ctx->info_callbacks_finished == 2) {
-			print_sink_list(ctx);
-			if (ctx->info_callbacks_blocked) {
-				ctx->info_callbacks_blocked = FALSE;
-				collect_all_info(ctx);
-			}
-		}
-
-		return;
-	}
-
-	sink_info sink = {
-		.index = i->index,
-		.mute  = i->mute,
-		.vol   = pa_cvolume_avg(&i->volume),
-		.channels = i->volume.channels,
-		.name = g_strdup(i->name),
-		.device = pa_proplist_contains(i->proplist, "device.product.name") ? 
-			g_strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
-	};
-
-	list_append_struct(ctx->tmp_sinks, sink);
-}
-
 void
 quit(struct context *ctx)
 {
@@ -178,18 +225,6 @@ change_callback(pa_context* c, gint success, gpointer userdata)
 	return;
 }
 
-static void
-collect_all_info(struct context *ctx)
-{
-	if (ctx->info_callbacks_finished < 2)
-		return;
-	ctx->info_callbacks_finished = 0;
-	ctx->tmp_sinks = NULL;
-	ctx->tmp_inputs = NULL;
-	pa_operation_unref(pa_context_get_sink_info_list(ctx->context, get_sink_info_callback, ctx));
-	pa_operation_unref(pa_context_get_sink_input_info_list(ctx->context, get_sink_input_info_callback, ctx));
-}
-
 int
 main(int argc, char** argv)
 {
@@ -197,9 +232,8 @@ main(int argc, char** argv)
 	pa_mainloop_api  *mainloop_api = NULL;
 	pa_glib_mainloop *m            = NULL;
 
-	ctx->info_callbacks_finished = 2;
-	ctx->info_callbacks_blocked = FALSE;
 	ctx->sink_list = NULL;
+	ctx->input_list = NULL;
 	ctx->max_name_len = 0;
 	ctx->context_ready = FALSE;
 
