@@ -243,45 +243,39 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 		case 'l':
 		case 'd':
 		case KEY_RIGHT: {
-			struct tmp_t {
-				guint32 index;
-				pa_cvolume volume;
-				pa_volume_t tmp_vol;
-				pa_operation* (*volume_set) (pa_context*, guint32, const pa_cvolume*, pa_context_success_cb_t, gpointer);
-			} tmp;
+			guint32 index;
+			pa_cvolume volume;
+			pa_volume_t tmp_vol;
+			pa_operation* (*volume_set) (pa_context*, guint32, const pa_cvolume*, pa_context_success_cb_t, gpointer);
 
 			sink = g_list_nth_data(sink_list, chooser_sink);
 			if (chooser_input >= 0) {
 				sink_input_info *input = g_list_nth_data(sink->input_list, chooser_input);
-				tmp = (struct tmp_t) {
-					.index      = input->index,
-					.volume     = (pa_cvolume) {.channels = input->channels},
-					.tmp_vol    = input->vol, 
-					.volume_set = pa_context_set_sink_input_volume
-				};
+				index      = input->index;
+				volume     = (pa_cvolume) {.channels = input->channels};
+				tmp_vol    = input->vol; 
+				volume_set = pa_context_set_sink_input_volume;
 			} else if (chooser_input == SELECTED_SINK) {
-				tmp = (struct tmp_t) {
-					.index      = sink->index,
-					.volume     = (pa_cvolume) {.channels = sink->channels},
-					.tmp_vol    = sink->vol,
-					.volume_set = pa_context_set_sink_volume_by_index
-				};
+				index      = sink->index;
+				volume     = (pa_cvolume) {.channels = sink->channels};
+				tmp_vol    = sink->vol;
+				volume_set = pa_context_set_sink_volume_by_index;
 			} else
 				break;
 
-			pa_cvolume_set(&tmp.volume, tmp.volume.channels, tmp.tmp_vol);
+			pa_cvolume_set(&volume, volume.channels, tmp_vol);
 			pa_volume_t inc = 2 * PA_VOLUME_NORM / 100;
 
 			if (volume_increment)
-				if (PA_VOLUME_NORM > tmp.tmp_vol && PA_VOLUME_NORM - tmp.tmp_vol > inc)
-					pa_cvolume_inc(&tmp.volume, inc);
+				if (PA_VOLUME_NORM > tmp_vol && PA_VOLUME_NORM - tmp_vol > inc)
+					pa_cvolume_inc(&volume, inc);
 				else
-					pa_cvolume_set(&tmp.volume, tmp.volume.channels, PA_VOLUME_NORM);
+					pa_cvolume_set(&volume, volume.channels, PA_VOLUME_NORM);
 			else
-				pa_cvolume_dec(&tmp.volume, inc);
+				pa_cvolume_dec(&volume, inc);
 
 
-			pa_operation_unref(tmp.volume_set(context, tmp.index, &tmp.volume, change_callback, NULL));
+			pa_operation_unref(volume_set(context, index, &volume, change_callback, NULL));
 			break;
 		}
 
@@ -289,30 +283,24 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 		case 'm':
 		case 'x':
 		case 'M': {
-			struct tmp_t {
-				guint32 index;
-				gint mute;
-				pa_operation* (*mute_set) (pa_context*, guint32, int, pa_context_success_cb_t, void*);
-			} tmp;
+			guint32 index;
+			gint mute;
+			pa_operation* (*mute_set) (pa_context*, guint32, int, pa_context_success_cb_t, void*);
 
 			sink = g_list_nth_data(sink_list, chooser_sink);
 			if (chooser_input >= 0) {
 				sink_input_info *input = g_list_nth_data(sink->input_list, chooser_input);
-				tmp = (struct tmp_t) {
-					.index    = input->index,
-					.mute     = input->mute,
-					.mute_set = pa_context_set_sink_input_mute
-				};
+				index    = input->index;
+				mute     = !input->mute;
+				mute_set = pa_context_set_sink_input_mute;
 			} else if (chooser_input == SELECTED_SINK) {
-				tmp = (struct tmp_t) {
-					.index    = sink->index,
-					.mute     = sink->mute,
-					.mute_set = pa_context_set_sink_mute_by_index
-				};
+				index    = sink->index;
+				mute     = !sink->mute;
+				mute_set = pa_context_set_sink_mute_by_index;
 			} else
 				break;
 
-			pa_operation_unref(tmp.mute_set(context, tmp.index, !tmp.mute, change_callback, NULL));
+			pa_operation_unref(mute_set(context, index, mute, change_callback, NULL));
 			break;
 		}
 
