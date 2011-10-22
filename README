@@ -1,7 +1,15 @@
-compile:
-./autogen.sh
-./configure
-make
+pa-sink-ctl - NCurses based Pulseaudio control client
 
-install:
-make install
+What is pa-sink-ctl
+===================
+Pa-sink-ctl is a ncurses based Pulseaudio control client,
+that targets basic functions in a keyboard controllable way,
+such as volume change and output assign of audio streams.
+
+Dependencies
+============
+Among the pulseaudio API glib is required.
+
+Compiling
+=========
+See the INSTALL document for build instructions.
