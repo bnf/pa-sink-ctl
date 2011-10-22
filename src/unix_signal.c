@@ -46,7 +46,8 @@ prepare(GSource *source, gint *timeout_)
 	UnixSignalSource *signal_source = (UnixSignalSource*) source;
 
 	if (signal_source->data->context == NULL) {
-		g_main_context_ref(signal_source->data->context = g_source_get_context(source));
+		g_main_context_ref(signal_source->data->context =
+				   g_source_get_context(source));
 		signal_source->data->source_id = g_source_get_id(source);
 	}
 
@@ -114,7 +115,8 @@ unix_signal_source_new(gint signum)
 }
 
 guint
-unix_signal_add_full(gint priority, gint signum, GSourceFunc function, gpointer data, GDestroyNotify notify)
+unix_signal_add_full(gint priority, gint signum, GSourceFunc function,
+		     gpointer data, GDestroyNotify notify)
 {
 	g_return_val_if_fail(function != NULL, 0);
 	GSource *source = unix_signal_source_new(signum);
@@ -131,5 +133,6 @@ unix_signal_add_full(gint priority, gint signum, GSourceFunc function, gpointer 
 
 guint unix_signal_add(gint signum, GSourceFunc function, gpointer data)
 {
-	return unix_signal_add_full(G_PRIORITY_DEFAULT, signum, function, data, NULL);
+	return unix_signal_add_full(G_PRIORITY_DEFAULT, signum,
+				    function, data, NULL);
 }

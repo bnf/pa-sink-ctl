@@ -44,13 +44,15 @@ find_sink_by_idx(struct context *ctx, gint idx)
  * is called after sink-input
  */
 static void
-get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is_last, gpointer userdata)
+sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
+		   gint is_last, gpointer userdata)
 {
 	g_assert(userdata != NULL);
 	struct context *ctx = userdata;
 
 	if (is_last < 0) {
-		g_printerr("Failed to get sink input information: %s\n", pa_strerror(pa_context_errno(c)));
+		g_printerr("Failed to get sink input information: %s\n",
+			   pa_strerror(pa_context_errno(c)));
 		return;
 	}
 
@@ -69,7 +71,8 @@ get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is
 		.index = i->index,
 		.sink = i->sink,
 		.name = pa_proplist_contains(i->proplist, "application.name") ?
-			g_strdup(pa_proplist_gets(i->proplist, "application.name")):
+			g_strdup(pa_proplist_gets(i->proplist,
+						  "application.name")):
 			g_strdup(i->name),
 		.mute = i->mute,
 		.channels = i->volume.channels,
@@ -88,13 +91,15 @@ get_sink_input_info_callback(pa_context *c, const pa_sink_input_info *i, gint is
  * the begin of the callback loops
  */
 static void
-get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpointer userdata)
+sink_info_cb(pa_context *c, const pa_sink_info *i,
+	     gint is_last, gpointer userdata)
 {
 	g_assert(userdata != NULL);
 	struct context *ctx = userdata;
 
 	if (is_last < 0) {
-		g_printerr("Failed to get sink information: %s\n", pa_strerror(pa_context_errno(c)));
+		g_printerr("Failed to get sink information: %s\n",
+			   pa_strerror(pa_context_errno(c)));
 		quit(ctx);
 	}
 
@@ -110,8 +115,11 @@ get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpoin
 		.vol   = pa_cvolume_avg(&i->volume),
 		.channels = i->volume.channels,
 		.name = g_strdup(i->name),
-		.device = pa_proplist_contains(i->proplist, "device.product.name") ? 
-			g_strdup(pa_proplist_gets(i->proplist, "device.product.name")) : NULL,
+		.device = pa_proplist_contains(i->proplist,
+					       "device.product.name") ?
+			g_strdup(pa_proplist_gets(i->proplist,
+						  "device.product.name")) :
+			NULL,
 	};
 
 	sink_info *inlist = find_sink_by_idx(ctx, i->index);
@@ -122,7 +130,8 @@ get_sink_info_callback(pa_context *c, const pa_sink_info *i, gint is_last, gpoin
 }
 
 static void
-subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 idx, gpointer userdata)
+subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
+	     guint32 idx, gpointer userdata)
 {
 	struct context *ctx = userdata;
 	pa_operation *op;
@@ -133,11 +142,15 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 idx, gpointe
 	case PA_SUBSCRIPTION_EVENT_CHANGE:
 		switch (t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) {
 		case PA_SUBSCRIPTION_EVENT_SINK:
-			op = pa_context_get_sink_info_by_index(c, idx, get_sink_info_callback, ctx);
+			op = pa_context_get_sink_info_by_index(c, idx,
+							       sink_info_cb,
+							       ctx);
 			pa_operation_unref(op);
 			break;
 		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
-			op = pa_context_get_sink_input_info(c, idx, get_sink_input_info_callback, ctx);
+			op = pa_context_get_sink_input_info(c, idx,
+							    sink_input_info_cb,
+							    ctx);
 			pa_operation_unref(op);
 			break;
 		}
@@ -151,7 +164,8 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t, guint32 idx, gpointe
 			break;
 		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
 			object = find_sink_input_by_idx(ctx, idx);
-			ctx->input_list = g_list_remove(ctx->input_list, object);
+			ctx->input_list = g_list_remove(ctx->input_list,
+							object);
 			g_free(object);
 			break;
 		default:
@@ -171,6 +185,7 @@ static void
 context_state_callback(pa_context *c, gpointer userdata)
 {
 	struct context *ctx = userdata;
+	pa_operation *op;
 
 	ctx->context_ready = FALSE;
 	switch (pa_context_get_state(c)) {
@@ -185,11 +200,16 @@ context_state_callback(pa_context *c, gpointer userdata)
 		break;
 
 	case PA_CONTEXT_READY:
-		pa_operation_unref(pa_context_get_sink_info_list(c, get_sink_info_callback, ctx));
-		pa_operation_unref(pa_context_get_sink_input_info_list(c, get_sink_input_info_callback, ctx));
+		op = pa_context_get_sink_info_list(c, sink_info_cb, ctx);
+		pa_operation_unref(op);
+		op = pa_context_get_sink_input_info_list(c, sink_input_info_cb,
+							 ctx);
+		pa_operation_unref(op);
 
 		pa_context_set_subscribe_callback(c, subscribe_cb, ctx);
-		pa_subscription_mask_t mask = PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT;
+		pa_subscription_mask_t mask =
+			PA_SUBSCRIPTION_MASK_SINK |
+			PA_SUBSCRIPTION_MASK_SINK_INPUT;
 		g_assert((ctx->op = pa_context_subscribe(c, mask, NULL, NULL)));
 		ctx->context_ready = TRUE;
 		interface_set_status(ctx, "ready to process events.");
@@ -261,8 +281,10 @@ main(int argc, char** argv)
 	}
 
 	// define callback for connection init
-	pa_context_set_state_callback(ctx->context, context_state_callback, ctx);
-	if (pa_context_connect(ctx->context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL)) {
+	pa_context_set_state_callback(ctx->context,
+				      context_state_callback, ctx);
+	if (pa_context_connect(ctx->context, NULL,
+			       PA_CONTEXT_NOAUTOSPAWN, NULL)) {
 		interface_clear(ctx);
 		g_printerr("error: pa_context_connect() failed.\n");
 	}
