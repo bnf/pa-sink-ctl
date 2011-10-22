@@ -357,11 +357,14 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 	case '\n':
 	case '\t':
 	case ' ':
-		if (ctx->chooser_input == SELECTED_SINK)
+		if (ctx->chooser_input == SELECTED_SINK ||
+		    ctx->chooser_input == SELECTED_UNKNOWN)
 			break;
 		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
 		sink_input_info *input = sink_get_nth_input(ctx, sink,
 							    ctx->chooser_input);
+		if (g_list_length(ctx->sink_list) <= 1)
+		    break;
 		ctx->selected_index = input->index;
 		if (ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1)
 			ctx->chooser_sink++;
