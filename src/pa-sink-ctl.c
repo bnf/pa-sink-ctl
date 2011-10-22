@@ -40,9 +40,6 @@ find_sink_by_idx(struct context *ctx, gint idx)
 	return NULL;
 }
 
-/*
- * is called after sink-input
- */
 static void
 sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		   gint is_last, gpointer userdata)
@@ -87,9 +84,6 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		list_append_struct(ctx->input_list, sink_input);
 }
 
-/*
- * the begin of the callback loops
- */
 static void
 sink_info_cb(pa_context *c, const pa_sink_info *i,
 	     gint is_last, gpointer userdata)
