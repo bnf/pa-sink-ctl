@@ -40,7 +40,6 @@ struct context {
 
 	gint chooser_sink;
 	gint chooser_input;
-	guint32 selected_index;
 
 	guint max_name_len;
 
@@ -50,7 +49,6 @@ struct context {
 	GList *input_list;
 
 	gchar *status;
-	gboolean block_for_selected_index;
 };
 
 void

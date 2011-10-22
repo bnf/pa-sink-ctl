@@ -38,7 +38,6 @@
 
 #define H_MSG_BOX 3
 
-#define SELECTED_UNKNOWN -2
 #define SELECTED_SINK -1
 
 static int
@@ -194,25 +193,6 @@ print_sink_list(struct context *ctx)
 	werase(ctx->menu_win);
 	box(ctx->menu_win, 0, 0);
 
-	/* derive chooser_input from selected_index (set when input is moved) */
-	if (ctx->chooser_input == SELECTED_UNKNOWN) {
-		/* if index is will not be found, select sink as fallback */
-		ctx->chooser_input = SELECTED_SINK; 
-		/* step through inputs for current sink and find the selected */
-		sink_info *sink = g_list_nth_data(ctx->sink_list,
-						  ctx->chooser_sink);
-		for (l = ctx->input_list, i = -1; l; l = l->next) {
-			sink_input_info *input = l->data;
-			if (input->sink != sink->index)
-				continue;
-			++i;
-			if (ctx->selected_index == input->index) {
-				ctx->chooser_input = i;
-				break;
-			}
-		}
-	}
-
 	for (l = ctx->sink_list, i = 0; l; l = l->next,++i) {
 		sink_info *sink = l->data;
 		gboolean selected = (i == ctx->chooser_sink &&
@@ -357,15 +337,13 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 	case '\n':
 	case '\t':
 	case ' ':
-		if (ctx->chooser_input == SELECTED_SINK ||
-		    ctx->chooser_input == SELECTED_UNKNOWN)
+		if (ctx->chooser_input == SELECTED_SINK)
 			break;
 		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
 		sink_input_info *input = sink_get_nth_input(ctx, sink,
 							    ctx->chooser_input);
 		if (g_list_length(ctx->sink_list) <= 1)
 		    break;
-		ctx->selected_index = input->index;
 		if (ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1)
 			ctx->chooser_sink++;
 		else
@@ -373,13 +351,25 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 
 		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
 		/* chooser_input needs to be derived from $selected_index */
-		ctx->chooser_input = SELECTED_UNKNOWN; 
-		ctx->block_for_selected_index = TRUE;
 		o = pa_context_move_sink_input_by_index(ctx->context,
-							ctx->selected_index,
+							input->index,
 							sink->index,
 							change_callback, NULL);
 		pa_operation_unref(o);
+
+		/* get new chooser_input, if non, select sink as fallback */
+		ctx->chooser_input = SELECTED_SINK; 
+		gint i = -1;
+		for (GList *l = ctx->input_list; l; l = l->next) {
+			sink_input_info *t = l->data;
+
+			if (t->index == input->index) {
+				ctx->chooser_input = ++i;
+				break;
+			}
+			if (t->sink == sink->index)
+				++i;
+		}
 		break;
 
 	case 'q':

@@ -73,15 +73,11 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 	}
 
 	if (is_last) {
-		if (!ctx->block_for_selected_index)
-			print_sink_list(ctx);
+		print_sink_list(ctx);
 		return;
 	}
 
 	if (!(i->client != PA_INVALID_INDEX)) return;
-
-	if (ctx->block_for_selected_index && i->index == ctx->selected_index)
-		ctx->block_for_selected_index = FALSE;
 
 	sink_input_info sink_input = {
 		.index = i->index,
@@ -117,8 +113,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 	}
 
 	if (is_last) {
-		if (!ctx->block_for_selected_index)
-			print_sink_list(ctx);
+		print_sink_list(ctx);
 		return;
 	}
 
