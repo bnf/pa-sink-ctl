@@ -60,7 +60,7 @@ static sink_input_info *
 sink_get_nth_input(struct context *ctx, sink_info *sink, int n)
 {
 	GList *l;
-	int i;
+	int i = 0;
 
 	for (l = ctx->input_list; l; l = l->next) {
 		sink_input_info *input = l->data;
