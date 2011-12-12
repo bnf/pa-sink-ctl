@@ -114,13 +114,21 @@ get_sink_priority(struct context *ctx, const pa_sink_info *sink_info)
 	return 0;
 }
 
-static gint
-cmp_priority(gconstpointer list_data, gconstpointer b)
+static void
+add_sink(struct context *ctx, sink_info *new)
 {
-	const sink_info *sink_el = list_data;
-	const sink_info *sink = b;
+	GList *l, *pos = NULL;
 
-	return (sink->priority > sink_el->priority) ? 0 : -1;
+	for (l = ctx->sink_list; l; l = l->next) {
+		sink_info *sink = l->data;
+
+		if (new->priority > sink->priority) {
+			pos = l;
+			break;
+		}
+	}
+	ctx->sink_list = g_list_insert_before(ctx->sink_list, pos,
+					      g_memdup(new, sizeof *new));
 }
 
 static void
@@ -161,9 +169,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 	if (inlist)
 		*inlist = sink;
 	else
-		list_insert_struct(ctx->sink_list, sink,
-				   g_list_find_custom(ctx->sink_list,
-						      &sink, cmp_priority));
+		add_sink(ctx, &sink);
 }
 
 static void
