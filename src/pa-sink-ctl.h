@@ -61,10 +61,13 @@ quit(struct context *ctx);
 void
 change_callback(pa_context* c, gint success, gpointer);
 
-#define list_append_struct(list, data) \
+
+#define list_insert_struct(list, data, pos) \
 	do { \
-		(list) = g_list_append((list), \
-				       g_memdup(&(data), sizeof(data))); \
+		(list) = g_list_insert_before((list), (pos), \
+					      g_memdup(&(data), sizeof(data)));\
 	} while (0)
+
+#define list_append_struct(list, data) list_insert_struct((list), (data), NULL)
 
 #endif
