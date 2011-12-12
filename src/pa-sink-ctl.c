@@ -23,13 +23,8 @@
 
 #include "sink.h"
 #include "interface.h"
+#include "config.h"
 #include "pa-sink-ctl.h"
-
-#define list_append_struct(list, data) \
-	do { \
-		(list) = g_list_append((list), \
-				       g_memdup(&(data), sizeof(data))); \
-	} while (0)
 
 static sink_input_info *
 find_sink_input_by_idx(struct context *ctx, gint idx)
@@ -101,6 +96,41 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		list_append_struct(ctx->input_list, sink_input);
 }
 
+static int
+get_sink_priority(struct context *ctx, const pa_sink_info *sink_info)
+{
+	GList *l;
+	const char *value;
+
+	for (l = ctx->config.priorities; l; l = l->next) {
+		struct priority *p = l->data;
+
+		value = pa_proplist_gets(sink_info->proplist, p->match);
+
+		if (g_strcmp0(value, p->value) == 0)
+			return p->priority;
+	}
+
+	return 0;
+}
+
+static void
+add_sink(struct context *ctx, sink_info *new)
+{
+	GList *l, *pos = NULL;
+
+	for (l = ctx->sink_list; l; l = l->next) {
+		sink_info *sink = l->data;
+
+		if (new->priority > sink->priority) {
+			pos = l;
+			break;
+		}
+	}
+	ctx->sink_list = g_list_insert_before(ctx->sink_list, pos,
+					      g_memdup(new, sizeof *new));
+}
+
 static void
 sink_info_cb(pa_context *c, const pa_sink_info *i,
 	     gint is_last, gpointer userdata)
@@ -132,13 +162,14 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 			g_strdup(pa_proplist_gets(i->proplist,
 						  "device.product.name")) :
 			NULL,
+		.priority = get_sink_priority(ctx, i),
 	};
 
 	sink_info *inlist = find_sink_by_idx(ctx, i->index);
 	if (inlist)
 		*inlist = sink;
 	else
-		list_append_struct(ctx->sink_list, sink);
+		add_sink(ctx, &sink);
 }
 
 static void
@@ -275,6 +306,9 @@ main(int argc, char** argv)
 	ctx->context_ready = FALSE;
 
 	ctx->loop = g_main_loop_new(NULL, FALSE);
+	
+	if (config_init(&ctx->config) < 0)
+		return -1;
 
 	interface_init(ctx);
 
@@ -309,6 +343,8 @@ main(int argc, char** argv)
 
 	pa_glib_mainloop_free(m);
 	g_main_loop_unref(ctx->loop);
+
+	config_uninit(&ctx->config);
 
 	return 0;
 }

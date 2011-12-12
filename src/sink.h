@@ -30,6 +30,7 @@ typedef struct _sink_info {
 	gint mute;
 	guint8 channels;
 	pa_volume_t vol;
+	gint priority;
 } sink_info;
 
 typedef struct _sink_input_info {

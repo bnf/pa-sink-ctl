@@ -24,6 +24,8 @@
 #include <pulse/pulseaudio.h>
 #include <ncurses.h>
 
+#include "config.h"
+
 struct context {
 	pa_context *context;
 	pa_operation *op;
@@ -49,6 +51,8 @@ struct context {
 	GList *input_list;
 
 	gchar *status;
+
+	struct config config;
 };
 
 void
@@ -56,5 +60,11 @@ quit(struct context *ctx);
 
 void
 change_callback(pa_context* c, gint success, gpointer);
+
+#define list_append_struct(list, data) \
+	do { \
+		(list) = g_list_append((list), \
+				       g_memdup(&(data), sizeof(data))); \
+	} while (0)
 
 #endif
