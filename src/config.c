@@ -64,18 +64,29 @@ destroy_priority(gpointer data)
 int
 config_init(struct config *cfg)
 {
-	GError *error = NULL;
+	/* FIXME: Not a nicer method available in glib? */
+	const gchar *home_dirs[] = { g_get_user_config_dir(), NULL };
+	const gchar * const * dirs_array[] = { home_dirs, g_get_system_config_dirs() };
+	GError *error;
+	int i;
 
 	memset(cfg, 0, sizeof *cfg);
 	cfg->keyfile = g_key_file_new();
 	cfg->priorities = NULL;
 
-	if (!g_key_file_load_from_data_dirs(cfg->keyfile,
-					    "pa-sink-ctl/config.ini",
-					    NULL, G_KEY_FILE_NONE, &error)
-	    && error) {
-		g_printerr("Failed to open config file: %s\n", error->message);
-		return -1;
+	for (i = 0; i < G_N_ELEMENTS(dirs_array); ++i) {
+		error = NULL;
+		if (g_key_file_load_from_dirs(cfg->keyfile,
+					      "pa-sink-ctl/config.ini",
+					      (const gchar **) dirs_array[i],
+					      NULL, G_KEY_FILE_NONE, &error)
+		    && !error)
+			break;
+	}
+	if (error) {
+			g_printerr("Failed to open config file: %s\n",
+				   error->message);
+			return -1;
 	}
 
 	if (parse_priorities(cfg) < 0)
