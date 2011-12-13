@@ -289,7 +289,6 @@ context_state_callback(pa_context *c, gpointer userdata)
 		pa_operation_unref(ctx->op);
 		ctx->op = NULL;
 		interface_set_status(ctx, "connection terminated.");
-		g_main_loop_quit(ctx->loop);
 		break;
 	default:
 		interface_set_status(ctx, "unknown state");
@@ -301,6 +300,7 @@ void
 quit(struct context *ctx)
 {
 	pa_context_disconnect(ctx->context);
+	g_main_loop_quit(ctx->loop);
 }
 
 /*
