@@ -124,6 +124,22 @@ compare_sink_priority(gconstpointer new_data, gconstpointer el_data)
 	return el->priority - new->priority + 1;
 }
 
+static gchar *
+get_sink_name(struct context *ctx, const pa_sink_info *sink)
+{
+	struct config *cfg = &ctx->config;
+	int i;
+
+	for (i = 0; cfg->name_props && cfg->name_props[i]; ++i) {
+		if (pa_proplist_contains(sink->proplist,
+					 cfg->name_props[i]))
+			return g_strdup(pa_proplist_gets(sink->proplist,
+							 cfg->name_props[i]));
+	}
+	
+	return g_strdup(sink->name);
+}
+
 static void
 sink_info_cb(pa_context *c, const pa_sink_info *i,
 	     gint is_last, gpointer userdata)
@@ -149,12 +165,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		.mute  = i->mute,
 		.vol   = pa_cvolume_avg(&i->volume),
 		.channels = i->volume.channels,
-		.name = g_strdup(i->name),
-		.device = pa_proplist_contains(i->proplist,
-					       "device.product.name") ?
-			g_strdup(pa_proplist_gets(i->proplist,
-						  "device.product.name")) :
-			NULL,
+		.name = get_sink_name(ctx, i),
 		.priority = get_sink_priority(ctx, i),
 	};
 

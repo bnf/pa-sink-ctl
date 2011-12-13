@@ -26,7 +26,6 @@
 typedef struct _sink_info {
 	guint32 index;
 	gchar* name;
-	gchar* device;
 	gint mute;
 	guint8 channels;
 	pa_volume_t vol;

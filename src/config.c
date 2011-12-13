@@ -61,6 +61,21 @@ destroy_priority(gpointer data)
 	g_free(p);
 }
 
+static int
+read_settings(struct config *cfg)
+{
+	GError *error = NULL;
+
+	cfg->name_props =
+		g_key_file_get_string_list(cfg->keyfile, "pa-sink-ctl",
+					   "name-properties", NULL, &error);
+	/* Can be ignored if not found. */
+	if (error)
+		error = NULL;
+
+	return 0;
+}
+
 int
 config_init(struct config *cfg)
 {
@@ -89,6 +104,9 @@ config_init(struct config *cfg)
 			return -1;
 	}
 
+	if (read_settings(cfg) < 0)
+		return -1;
+
 	if (parse_priorities(cfg) < 0)
 		return -1;
 
@@ -100,5 +118,6 @@ config_uninit(struct config *cfg)
 {
 	g_list_free_full(cfg->priorities, destroy_priority);
 
+	g_strfreev(cfg->name_props);
 	g_key_file_free(cfg->keyfile);
 }

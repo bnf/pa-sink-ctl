@@ -163,7 +163,7 @@ set_max_name_len(struct context *ctx)
 	for (l = ctx->sink_list; l; l = l->next) {
 		sink_info *sink = l->data;
 
-		len = strlen(sink->device != NULL ? sink->device : sink->name);
+		len = strlen(sink->name);
 
 		if (len > ctx->max_name_len)
 			ctx->max_name_len = len;
@@ -202,8 +202,7 @@ print_sink_list(struct context *ctx)
 			wattron(ctx->menu_win, A_REVERSE);
 
 		mvwprintw(ctx->menu_win, offset, x, "%2u %-*s",
-			  sink->index, ctx->max_name_len,
-			  sink->device != NULL ? sink->device : sink->name);
+			  sink->index, ctx->max_name_len, sink->name);
 
 		if (selected)
 			wattroff(ctx->menu_win, A_REVERSE);

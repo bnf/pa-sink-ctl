@@ -5,6 +5,7 @@ struct config {
 	GKeyFile *keyfile;
 
 	GList *priorities;
+	gchar **name_props;
 };
 
 struct priority {
