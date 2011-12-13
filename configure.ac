@@ -36,7 +36,7 @@ PKG_CHECK_MODULES(PULSE_MAINLOOP, [libpulse-mainloop-glib], [], AC_MSG_ERROR([li
 PKG_CHECK_MODULES(GLIB, [glib-2.0], [], AC_MSG_ERROR([glib required]))
 
 if test "x$GCC" = "xyes"; then
-	GCC_CFLAGS="-Wall -Werror -pedantic -std=c99 -Wstrict-prototypes -Wmissing-prototypes -fvisibility=hidden"
+	GCC_CFLAGS="-Wall -pedantic -std=c99 -Wstrict-prototypes -Wmissing-prototypes -fvisibility=hidden"
 fi
 AC_SUBST(GCC_CFLAGS)
 

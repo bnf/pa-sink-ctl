@@ -198,10 +198,17 @@ interface_clear(struct context *ctx)
 {
 	g_source_remove(ctx->resize_source_id);
 	g_source_remove(ctx->input_source_id);
+#ifdef HAVE_SIGNALFD
 	close(ctx->signal_fd);
+#endif
 	clear();
 	refresh();
+	delwin(ctx->menu_win);
+	delwin(ctx->msg_win);
 	endwin();
+	delscreen(NULL);
+	if (ctx->status)
+		g_free(ctx->status);
 }
 
 void
@@ -278,7 +285,8 @@ interface_init(struct context *ctx)
 			exit(EXIT_FAILURE);
 		ctx->signal_fd = signalfd(-1, &mask, 0);
 		channel = g_io_channel_unix_new(ctx->signal_fd);
-		g_io_add_watch(channel, G_IO_IN, resize_gio, ctx);
+		ctx->resize_source_id =
+			g_io_add_watch(channel, G_IO_IN, resize_gio, ctx);
 		g_io_channel_unref(channel);
 	}
 #else

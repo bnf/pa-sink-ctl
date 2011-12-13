@@ -56,6 +56,7 @@ parse_priorities(struct config *cfg)
 
 		list_append_struct(cfg->priorities, p);
 	}
+	g_strfreev(groups);
 
 	return 0;
 
@@ -67,6 +68,8 @@ error:
 
 	g_printerr("Failed to read property in prioritiy group '%s': %s\n",
 		   groups[i], error->message);
+
+	g_strfreev(groups);
 
 	return -1;
 }
@@ -144,6 +147,7 @@ read_input_mappings(struct config *cfg)
 			g_hash_table_insert(cfg->keymap, GINT_TO_POINTER(key),
 					    &command_cbs[i]);
 		}
+		g_strfreev(list);
 	}
 
 	return 0;

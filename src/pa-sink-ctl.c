@@ -174,6 +174,24 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 }
 
 static void
+sink_free(gpointer data)
+{
+	struct sink_info *sink = data;
+
+	g_free(sink->name);
+	g_free(sink);
+}
+
+static void
+sink_input_free(gpointer data)
+{
+	struct sink_input_info *input = data;
+
+	g_free(input->name);
+	g_free(input);
+}
+
+static void
 subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 	     guint32 idx, gpointer userdata)
 {
@@ -204,13 +222,13 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 		case PA_SUBSCRIPTION_EVENT_SINK:
 			object = find_sink_by_idx(ctx, idx);
 			ctx->sink_list = g_list_remove(ctx->sink_list, object);
-			g_free(object);
+			sink_free(object);
 			break;
 		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
 			object = find_sink_input_by_idx(ctx, idx);
 			ctx->input_list = g_list_remove(ctx->input_list,
 							object);
-			g_free(object);
+			sink_input_free(object);
 			break;
 		default:
 			return;
@@ -339,14 +357,16 @@ main(int argc, char** argv)
 	g_main_loop_run(ctx->loop);
 
 	interface_clear(ctx);
-	g_list_free_full(ctx->sink_list, g_free);
-	g_list_free_full(ctx->input_list, g_free);
+	g_list_free_full(ctx->sink_list, sink_free);
+	g_list_free_full(ctx->input_list, sink_input_free);
 
 	pa_glib_mainloop_free(m);
+	pa_context_unref(ctx->context);
 	g_main_loop_unref(ctx->loop);
 
 	config_uninit(&ctx->config);
 
+	g_free(ctx);
+
 	return 0;
 }
-
