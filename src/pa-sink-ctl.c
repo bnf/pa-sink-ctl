@@ -61,8 +61,9 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 	if (is_last < 0) {
 		if (pa_context_errno(c) == PA_ERR_NOENTITY)
 			return;
-		g_printerr("Failed to get sink input information: %s\n",
-			   pa_strerror(pa_context_errno(c)));
+		interface_set_status(ctx,
+				     "Failed to get sink input info: %s\n",
+				     pa_strerror(pa_context_errno(c)));
 		return;
 	}
 
@@ -145,9 +146,10 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 	if (is_last < 0) {
 		if (pa_context_errno(c) == PA_ERR_NOENTITY)
 			return;
-		g_printerr("Failed to get sink information: %s\n",
-			   pa_strerror(pa_context_errno(c)));
-		quit(ctx);
+		interface_set_status(ctx,
+				     "Failed to get sink information: %s\n",
+				     pa_strerror(pa_context_errno(c)));
+		return;
 	}
 
 	if (is_last) {
