@@ -26,13 +26,13 @@
 #include "config.h"
 #include "pa-sink-ctl.h"
 
-static sink_input_info *
+static struct sink_input_info *
 find_sink_input_by_idx(struct context *ctx, gint idx)
 {
 	GList *l;
 
 	for (l = ctx->input_list; l; l = l->next) {
-		sink_input_info *input = l->data;
+		struct sink_input_info *input = l->data;
 		if (input->index == idx)
 			return input;
 	}
@@ -40,13 +40,13 @@ find_sink_input_by_idx(struct context *ctx, gint idx)
 	return NULL;
 }
 
-static sink_info *
+static struct sink_info *
 find_sink_by_idx(struct context *ctx, gint idx)
 {
 	GList *l;
 
 	for (l = ctx->sink_list; l; l = l->next) {
-		sink_info *sink = l->data;
+		struct sink_info *sink = l->data;
 		if (sink->index == idx)
 			return sink;
 	}
@@ -76,7 +76,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 
 	if (!(i->client != PA_INVALID_INDEX)) return;
 
-	sink_input_info sink_input = {
+	struct sink_input_info sink_input = {
 		.index = i->index,
 		.sink = i->sink,
 		.name = pa_proplist_contains(i->proplist, "application.name") ?
@@ -89,7 +89,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		.pid = NULL /* maybe obsolete */
 	};
 
-	sink_input_info *inlist = find_sink_input_by_idx(ctx, i->index);
+	struct sink_input_info *inlist = find_sink_input_by_idx(ctx, i->index);
 	if (inlist)
 		*inlist = sink_input;
 	else
@@ -117,8 +117,8 @@ get_sink_priority(struct context *ctx, const pa_sink_info *sink_info)
 static gint
 compare_sink_priority(gconstpointer new_data, gconstpointer el_data)
 {
-	const sink_info *new = new_data;
-	const sink_info *el = el_data;
+	const struct sink_info *new = new_data;
+	const struct sink_info *el = el_data;
 
 	/* Add 1 to append at end of sinks if priority equals */
 	return el->priority - new->priority + 1;
@@ -160,7 +160,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		return;
 	}
 
-	sink_info sink = {
+	struct sink_info sink = {
 		.index = i->index,
 		.mute  = i->mute,
 		.vol   = pa_cvolume_avg(&i->volume),
@@ -169,7 +169,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		.priority = get_sink_priority(ctx, i),
 	};
 
-	sink_info *inlist = find_sink_by_idx(ctx, i->index);
+	struct sink_info *inlist = find_sink_by_idx(ctx, i->index);
 	if (inlist)
 		*inlist = sink;
 	else

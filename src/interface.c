@@ -41,13 +41,13 @@
 #define SELECTED_SINK -1
 
 static int
-sink_input_len(struct context *ctx, sink_info *sink)
+sink_input_len(struct context *ctx, struct sink_info *sink)
 {
 	int len = 0;
 	GList *l;
 
 	for (l = ctx->input_list; l; l = l->next) {
-		sink_input_info *input = l->data;
+		struct sink_input_info *input = l->data;
 
 		if (input->sink == sink->index)
 			len++;
@@ -56,14 +56,14 @@ sink_input_len(struct context *ctx, sink_info *sink)
 	return len;
 }
 
-static sink_input_info *
-sink_get_nth_input(struct context *ctx, sink_info *sink, int n)
+static struct sink_input_info *
+sink_get_nth_input(struct context *ctx, struct sink_info *sink, int n)
 {
 	GList *l;
 	int i = 0;
 
 	for (l = ctx->input_list; l; l = l->next) {
-		sink_input_info *input = l->data;
+		struct sink_input_info *input = l->data;
 		if (input->sink != sink->index)
 			continue;
 		if (i++ == n)
@@ -122,7 +122,7 @@ print_volume(struct context *ctx, pa_volume_t volume, int mute, int y)
 }
 
 static void
-print_input_list(struct context *ctx, sink_info *sink,
+print_input_list(struct context *ctx, struct sink_info *sink,
 		 gint sink_num, gint *poffset)
 {
 	GList *l;
@@ -130,7 +130,7 @@ print_input_list(struct context *ctx, sink_info *sink,
 	gint i;
 
 	for (l = ctx->input_list, i = -1; l; l = l->next) {
-		sink_input_info *input = l->data;
+		struct sink_input_info *input = l->data;
 		if (input->sink != sink->index)
 			continue;
 		gboolean selected = (ctx->chooser_sink == sink_num &&
@@ -161,7 +161,7 @@ set_max_name_len(struct context *ctx)
 	ctx->max_name_len = len;
 
 	for (l = ctx->sink_list; l; l = l->next) {
-		sink_info *sink = l->data;
+		struct sink_info *sink = l->data;
 
 		len = strlen(sink->name);
 
@@ -170,7 +170,7 @@ set_max_name_len(struct context *ctx)
 	}
 
 	for (l = ctx->input_list; l; l = l->next) {
-		sink_input_info *input = l->data;
+		struct sink_input_info *input = l->data;
 
 		len = strlen(input->name) + 1 /* indentation */;
 
@@ -194,7 +194,7 @@ print_sink_list(struct context *ctx)
 	box(ctx->menu_win, 0, 0);
 
 	for (l = ctx->sink_list, i = 0; l; l = l->next,++i) {
-		sink_info *sink = l->data;
+		struct sink_info *sink = l->data;
 		gboolean selected = (i == ctx->chooser_sink &&
 				     ctx->chooser_input == SELECTED_SINK);
 
@@ -220,7 +220,7 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 	struct context *ctx = data;
 	gint c;
 	gboolean volume_increment = TRUE;
-	sink_info *sink = NULL;
+	struct sink_info *sink = NULL;
 	guint32 index;
 	pa_operation *o;
 
@@ -275,7 +275,7 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 					     pa_context_success_cb_t, gpointer);
 
 		if (ctx->chooser_input >= 0) {
-			sink_input_info *input =
+			struct sink_input_info *input =
 				sink_get_nth_input(ctx, sink,
 						   ctx->chooser_input);
 			index      = input->index;
@@ -316,7 +316,7 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 					   pa_context_success_cb_t, void*);
 
 		if (ctx->chooser_input >= 0) {
-			sink_input_info *input =
+			struct sink_input_info *input =
 				sink_get_nth_input(ctx, sink,
 						   ctx->chooser_input);
 			index    = input->index;
@@ -339,8 +339,8 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 		if (ctx->chooser_input == SELECTED_SINK)
 			break;
 		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		sink_input_info *input = sink_get_nth_input(ctx, sink,
-							    ctx->chooser_input);
+		struct sink_input_info *input =
+			sink_get_nth_input(ctx, sink, ctx->chooser_input);
 		if (g_list_length(ctx->sink_list) <= 1)
 		    break;
 		if (ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1)
@@ -360,7 +360,7 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 		ctx->chooser_input = SELECTED_SINK; 
 		gint i = -1;
 		for (GList *l = ctx->input_list; l; l = l->next) {
-			sink_input_info *t = l->data;
+			struct sink_input_info *t = l->data;
 
 			if (t->index == input->index) {
 				ctx->chooser_input = ++i;

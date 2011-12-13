@@ -23,16 +23,16 @@
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 
-typedef struct _sink_info {
+struct sink_info {
 	guint32 index;
 	gchar* name;
 	gint mute;
 	guint8 channels;
 	pa_volume_t vol;
 	gint priority;
-} sink_info;
+};
 
-typedef struct _sink_input_info {
+struct sink_input_info {
 	guint32 index;
 	guint32 sink;
 	gchar *name;
@@ -40,6 +40,6 @@ typedef struct _sink_input_info {
 	gint mute;
 	guint8 channels;
 	pa_volume_t vol; // TOTO: exchange with the channel-list
-} sink_input_info;
+};
 
 #endif
