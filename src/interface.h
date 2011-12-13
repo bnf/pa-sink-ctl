@@ -38,6 +38,6 @@ void
 interface_clear(struct context *ctx);
 
 void 
-interface_set_status(struct context *ctx, const gchar *);
+interface_set_status(struct context *ctx, const gchar *, ...);
 
 #endif

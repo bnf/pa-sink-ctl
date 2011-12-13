@@ -19,6 +19,7 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <stdarg.h>
 #include <sys/ioctl.h>
 
 #include <glib.h>
@@ -209,11 +210,15 @@ interface_clear(struct context *ctx)
 }
 
 void
-interface_set_status(struct context *ctx, const gchar *msg)
+interface_set_status(struct context *ctx, const gchar *msg, ...)
 {
+	va_list ap;
+
 	if (msg != NULL) {
 		g_free(ctx->status);
-		ctx->status = g_strdup(msg);
+		va_start(ap, msg);
+		ctx->status = g_strdup_vprintf(msg, ap);
+		va_end(ap);
 	}
 	werase(ctx->msg_win);
 	box(ctx->msg_win, 0, 0);

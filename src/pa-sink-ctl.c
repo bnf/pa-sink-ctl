@@ -348,10 +348,8 @@ main(int argc, char** argv)
 	mainloop_api = pa_glib_mainloop_get_api(m);
 
 	if (!(ctx.context = pa_context_new(mainloop_api, "pa-sink-ctl"))) {
-		char *s = g_strdup_printf("pa_context_new failed: %s\n",
-					  pa_strerror(pa_context_errno(ctx.context)));
-		interface_set_status(&ctx, s);
-		g_free(s);
+		interface_set_status(&ctx, "pa_context_new failed: %s\n",
+				     pa_strerror(pa_context_errno(ctx.context)));
 	}
 
 	// define callback for connection init
@@ -359,10 +357,8 @@ main(int argc, char** argv)
 				      context_state_callback, &ctx);
 	if (pa_context_connect(ctx.context, NULL,
 			       PA_CONTEXT_NOAUTOSPAWN, NULL)) {
-		char *s = g_strdup_printf("pa_context_connect failed: %s\n",
-					  pa_strerror(pa_context_errno(ctx.context)));
-		interface_set_status(&ctx, s);
-		g_free(s);
+		interface_set_status(&ctx, "pa_context_connect failed: %s\n",
+				     pa_strerror(pa_context_errno(ctx.context)));
 	}
 
 	ctx.return_value = 0;
