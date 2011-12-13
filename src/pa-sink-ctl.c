@@ -221,11 +221,15 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 		switch (t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) {
 		case PA_SUBSCRIPTION_EVENT_SINK:
 			object = find_sink_by_idx(ctx, idx);
+			if (object == NULL)
+				break;
 			ctx->sink_list = g_list_remove(ctx->sink_list, object);
 			sink_free(object);
 			break;
 		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
 			object = find_sink_input_by_idx(ctx, idx);
+			if (object == NULL)
+				break;
 			ctx->input_list = g_list_remove(ctx->input_list,
 							object);
 			sink_input_free(object);
