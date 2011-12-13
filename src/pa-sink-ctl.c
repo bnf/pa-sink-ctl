@@ -336,7 +336,7 @@ main(int argc, char** argv)
 
 	if (!(m = pa_glib_mainloop_new(NULL))) {
 		interface_clear(ctx);
-		g_printerr("error: pa_glib_mainloop_new() failed.\n");
+		g_printerr("pa_glib_mainloop_newfailed\n");
 		return -1;
 	}
 
@@ -344,7 +344,8 @@ main(int argc, char** argv)
 
 	if (!(ctx->context = pa_context_new(mainloop_api, "pa-sink-ctl"))) {
 		interface_clear(ctx);
-		g_printerr("error: pa_context_new() failed.\n");
+		g_printerr("pa_context_new failed: %s\n",
+			   pa_strerror(pa_context_errno(ctx->context)));
 		return -1;
 	}
 
@@ -354,7 +355,8 @@ main(int argc, char** argv)
 	if (pa_context_connect(ctx->context, NULL,
 			       PA_CONTEXT_NOAUTOSPAWN, NULL)) {
 		interface_clear(ctx);
-		g_printerr("error: pa_context_connect() failed.\n");
+		g_printerr("pa_context_connect failed: %s\n",
+			   pa_strerror(pa_context_errno(ctx->context)));
 		return -1;
 	}
 
