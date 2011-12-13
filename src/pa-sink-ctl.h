@@ -67,4 +67,7 @@ change_callback(pa_context* c, gint success, gpointer);
 				       g_memdup(&(data), sizeof(data))); \
 	} while (0)
 
+#define list_foreach(list, el) \
+	for (GList *__l = (list); __l && ((el) = __l->data); __l = __l->next)
+
 #endif

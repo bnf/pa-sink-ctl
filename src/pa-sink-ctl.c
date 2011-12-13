@@ -29,13 +29,11 @@
 static struct sink_input_info *
 find_sink_input_by_idx(struct context *ctx, gint idx)
 {
-	GList *l;
+	struct sink_input_info *input;
 
-	for (l = ctx->input_list; l; l = l->next) {
-		struct sink_input_info *input = l->data;
+	list_foreach(ctx->input_list, input)
 		if (input->index == idx)
 			return input;
-	}
 
 	return NULL;
 }
@@ -43,13 +41,11 @@ find_sink_input_by_idx(struct context *ctx, gint idx)
 static struct sink_info *
 find_sink_by_idx(struct context *ctx, gint idx)
 {
-	GList *l;
+	struct sink_info *sink;
 
-	for (l = ctx->sink_list; l; l = l->next) {
-		struct sink_info *sink = l->data;
+	list_foreach(ctx->sink_list, sink)
 		if (sink->index == idx)
 			return sink;
-	}
 
 	return NULL;
 }
@@ -99,12 +95,10 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 static int
 get_sink_priority(struct context *ctx, const pa_sink_info *sink_info)
 {
-	GList *l;
+	struct priority *p;
 	const char *value;
 
-	for (l = ctx->config.priorities; l; l = l->next) {
-		struct priority *p = l->data;
-
+	list_foreach(ctx->config.priorities, p) {
 		value = pa_proplist_gets(sink_info->proplist, p->match);
 
 		if (g_strcmp0(value, p->value) == 0)

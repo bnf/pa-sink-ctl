@@ -27,15 +27,12 @@
 static int
 sink_input_len(struct context *ctx, struct sink_info *sink)
 {
+	struct sink_input_info *input;
 	int len = 0;
-	GList *l;
 
-	for (l = ctx->input_list; l; l = l->next) {
-		struct sink_input_info *input = l->data;
-
+	list_foreach(ctx->input_list, input)
 		if (input->sink == sink->index)
 			len++;
-	}
 
 	return len;
 }
@@ -43,11 +40,10 @@ sink_input_len(struct context *ctx, struct sink_info *sink)
 static struct sink_input_info *
 sink_get_nth_input(struct context *ctx, struct sink_info *sink, int n)
 {
-	GList *l;
+	struct sink_input_info *input;
 	int i = 0;
 
-	for (l = ctx->input_list; l; l = l->next) {
-		struct sink_input_info *input = l->data;
+	list_foreach(ctx->input_list, input) {
 		if (input->sink != sink->index)
 			continue;
 		if (i++ == n)
@@ -182,7 +178,7 @@ static void
 switch_sink(struct context *ctx, int key)
 {
 	struct sink_info *sink = NULL;
-	struct sink_input_info *input;
+	struct sink_input_info *input, *t;
 	pa_operation *o;
 	gint i;
 
@@ -207,9 +203,7 @@ switch_sink(struct context *ctx, int key)
 	/* get new chooser_input, if non, select sink as fallback */
 	ctx->chooser_input = SELECTED_SINK; 
 	i = -1;
-	for (GList *l = ctx->input_list; l; l = l->next) {
-		struct sink_input_info *t = l->data;
-
+	list_foreach(ctx->input_list, t) {
 		if (t->index == input->index) {
 			ctx->chooser_input = ++i;
 			break;

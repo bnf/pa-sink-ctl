@@ -89,12 +89,11 @@ static void
 print_input_list(struct context *ctx, struct sink_info *sink,
 		 gint sink_num, gint *poffset)
 {
-	GList *l;
+	struct sink_input_info *input;
 	gint offset = *poffset;
-	gint i;
+	gint i = -1;
 
-	for (l = ctx->input_list, i = -1; l; l = l->next) {
-		struct sink_input_info *input = l->data;
+	list_foreach(ctx->input_list, input) {
 		if (input->sink != sink->index)
 			continue;
 		gboolean selected = (ctx->chooser_sink == sink_num &&
@@ -120,22 +119,19 @@ print_input_list(struct context *ctx, struct sink_info *sink,
 static void
 set_max_name_len(struct context *ctx)
 {
-	GList *l;
+	struct sink_info *sink;
+	struct sink_input_info *input;
 	guint len = 0;
 	ctx->max_name_len = len;
 
-	for (l = ctx->sink_list; l; l = l->next) {
-		struct sink_info *sink = l->data;
-
+	list_foreach(ctx->sink_list, sink) {
 		len = strlen(sink->name);
 
 		if (len > ctx->max_name_len)
 			ctx->max_name_len = len;
 	}
 
-	for (l = ctx->input_list; l; l = l->next) {
-		struct sink_input_info *input = l->data;
-
+	list_foreach(ctx->input_list, input) {
 		len = strlen(input->name) + 1 /* indentation */;
 
 		if (len > ctx->max_name_len)
@@ -146,10 +142,10 @@ set_max_name_len(struct context *ctx)
 void
 print_sink_list(struct context *ctx)
 {
-	gint i = 0;
+	struct sink_info *sink;
+	gint i = -1;
 	gint x = 2;
 	gint offset = 2; /* top border + 1 empty line */
-	GList *l;
 
 	/* looking for the longest name for right indentation */
 	set_max_name_len(ctx);
@@ -157,9 +153,8 @@ print_sink_list(struct context *ctx)
 	werase(ctx->menu_win);
 	box(ctx->menu_win, 0, 0);
 
-	for (l = ctx->sink_list, i = 0; l; l = l->next,++i) {
-		struct sink_info *sink = l->data;
-		gboolean selected = (i == ctx->chooser_sink &&
+	list_foreach(ctx->sink_list, sink) {
+		gboolean selected = (++i == ctx->chooser_sink &&
 				     ctx->chooser_input == SELECTED_SINK);
 
 		if (selected)
