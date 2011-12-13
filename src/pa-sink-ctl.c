@@ -20,6 +20,7 @@
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 #include <pulse/glib-mainloop.h>
+#include <string.h>
 
 #include "sink.h"
 #include "interface.h"
@@ -318,61 +319,67 @@ change_callback(pa_context* c, gint success, gpointer userdata)
 int
 main(int argc, char** argv)
 {
-	struct context *ctx = g_new0(struct context, 1);
+	struct context ctx;
 	pa_mainloop_api  *mainloop_api = NULL;
 	pa_glib_mainloop *m            = NULL;
 
-	ctx->sink_list = NULL;
-	ctx->input_list = NULL;
-	ctx->max_name_len = 0;
-	ctx->context_ready = FALSE;
+	memset(&ctx, 0, sizeof ctx);
 
-	ctx->loop = g_main_loop_new(NULL, FALSE);
+	ctx.sink_list = NULL;
+	ctx.input_list = NULL;
+	ctx.max_name_len = 0;
+	ctx.context_ready = FALSE;
+	ctx.return_value = 1;
+
+	ctx.loop = g_main_loop_new(NULL, FALSE);
+	if (!ctx.loop)
+		goto cleanup_context;
 	
-	if (config_init(&ctx->config) < 0)
-		return -1;
+	if (config_init(&ctx.config) < 0)
+		goto cleanup_loop;
 
-	interface_init(ctx);
+	if (interface_init(&ctx) < 0)
+		goto cleanup_config;
 
 	if (!(m = pa_glib_mainloop_new(NULL))) {
-		interface_clear(ctx);
-		g_printerr("pa_glib_mainloop_newfailed\n");
-		return -1;
+		g_printerr("pa_glib_mainloop_new failed\n");
+		goto cleanup_interface;
 	}
-
 	mainloop_api = pa_glib_mainloop_get_api(m);
 
-	if (!(ctx->context = pa_context_new(mainloop_api, "pa-sink-ctl"))) {
-		interface_clear(ctx);
-		g_printerr("pa_context_new failed: %s\n",
-			   pa_strerror(pa_context_errno(ctx->context)));
-		return -1;
+	if (!(ctx.context = pa_context_new(mainloop_api, "pa-sink-ctl"))) {
+		char *s = g_strdup_printf("pa_context_new failed: %s\n",
+					  pa_strerror(pa_context_errno(ctx.context)));
+		interface_set_status(&ctx, s);
+		g_free(s);
 	}
 
 	// define callback for connection init
-	pa_context_set_state_callback(ctx->context,
-				      context_state_callback, ctx);
-	if (pa_context_connect(ctx->context, NULL,
+	pa_context_set_state_callback(ctx.context,
+				      context_state_callback, &ctx);
+	if (pa_context_connect(ctx.context, NULL,
 			       PA_CONTEXT_NOAUTOSPAWN, NULL)) {
-		interface_clear(ctx);
-		g_printerr("pa_context_connect failed: %s\n",
-			   pa_strerror(pa_context_errno(ctx->context)));
-		return -1;
+		char *s = g_strdup_printf("pa_context_connect failed: %s\n",
+					  pa_strerror(pa_context_errno(ctx.context)));
+		interface_set_status(&ctx, s);
+		g_free(s);
 	}
 
-	g_main_loop_run(ctx->loop);
+	ctx.return_value = 0;
+	g_main_loop_run(ctx.loop);
 
-	interface_clear(ctx);
-	g_list_free_full(ctx->sink_list, sink_free);
-	g_list_free_full(ctx->input_list, sink_input_free);
+	g_list_free_full(ctx.sink_list, sink_free);
+	g_list_free_full(ctx.input_list, sink_input_free);
 
+	pa_context_unref(ctx.context);
 	pa_glib_mainloop_free(m);
-	pa_context_unref(ctx->context);
-	g_main_loop_unref(ctx->loop);
+cleanup_interface:
+	interface_clear(&ctx);
+cleanup_config:
+	config_uninit(&ctx.config);
+cleanup_loop:
+	g_main_loop_unref(ctx.loop);
+cleanup_context:
 
-	config_uninit(&ctx->config);
-
-	g_free(ctx);
-
-	return 0;
+	return ctx.return_value;
 }

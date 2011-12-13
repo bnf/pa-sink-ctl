@@ -53,6 +53,7 @@ struct context {
 	gchar *status;
 
 	struct config config;
+	int return_value;
 };
 
 void

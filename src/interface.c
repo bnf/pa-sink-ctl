@@ -241,7 +241,7 @@ resize_gio(GIOChannel *source, GIOCondition condition, gpointer data)
 }
 #endif
 
-void
+int
 interface_init(struct context *ctx)
 {
 	GIOChannel *input_channel;
@@ -279,7 +279,7 @@ interface_init(struct context *ctx)
 		sigaddset(&mask, SIGWINCH);
 
 		if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
-			exit(EXIT_FAILURE);
+			return -1;
 		ctx->signal_fd = signalfd(-1, &mask, 0);
 		channel = g_io_channel_unix_new(ctx->signal_fd);
 		ctx->resize_source_id =
@@ -293,10 +293,12 @@ interface_init(struct context *ctx)
 #endif
 	input_channel = g_io_channel_unix_new(STDIN_FILENO);
 	if (!input_channel)
-		exit(EXIT_FAILURE);
+		return -1;
 	ctx->input_source_id = g_io_add_watch(input_channel, G_IO_IN,
 					      interface_get_input, ctx);
 	g_io_channel_unref(input_channel);
 
 	refresh();
+
+	return 0;
 }

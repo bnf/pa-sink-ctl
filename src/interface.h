@@ -31,7 +31,7 @@ struct context;
 void
 interface_redraw(struct context *ctx);
 
-void
+int
 interface_init(struct context *ctx);
 
 void
