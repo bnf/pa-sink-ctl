@@ -181,9 +181,6 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 	struct command_cb_descriptor *cmd;
 	gint c;
 
-	if (!ctx->context_ready)
-		return TRUE;
-
 	c = wgetch(ctx->menu_win);
 
 	cmd = g_hash_table_lookup(ctx->config.keymap, GINT_TO_POINTER(c));

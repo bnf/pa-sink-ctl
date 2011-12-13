@@ -58,6 +58,9 @@ up(struct context *ctx, int key)
 {
 	struct sink_info *sink = NULL;
 
+	if (!ctx->context_ready)
+		return;
+
 	if (ctx->chooser_input == SELECTED_SINK &&
 	    ctx->chooser_sink > 0) {
 		sink = g_list_nth_data(ctx->sink_list, --ctx->chooser_sink);
@@ -73,6 +76,9 @@ static void
 down(struct context *ctx, int key)
 {
 	struct sink_info *sink;
+
+	if (!ctx->context_ready)
+		return;
 
 	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
 	if (ctx->chooser_input == (sink_input_len(ctx, sink) - 1) &&
@@ -91,6 +97,9 @@ volume_change(struct context *ctx, gboolean volume_increment)
 	struct sink_info *sink;
 	struct sink_input_info *input;
 	guint32 index;
+
+	if (!ctx->context_ready)
+		return;
 
 	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
 	pa_cvolume volume;
@@ -152,6 +161,9 @@ mute(struct context *ctx, int key)
 	guint32 index;
 	gint mute;
 
+	if (!ctx->context_ready)
+		return;
+
 	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
 	pa_operation* (*mute_set) (pa_context*, guint32, int,
 				   pa_context_success_cb_t, void*);
@@ -181,6 +193,9 @@ switch_sink(struct context *ctx, int key)
 	struct sink_input_info *input, *t;
 	pa_operation *o;
 	gint i;
+
+	if (!ctx->context_ready)
+		return;
 
 	if (ctx->chooser_input == SELECTED_SINK)
 		return;
