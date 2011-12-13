@@ -29,7 +29,7 @@
 struct context;
 
 void
-print_sink_list(struct context *ctx);
+interface_redraw(struct context *ctx);
 
 void
 interface_init(struct context *ctx);

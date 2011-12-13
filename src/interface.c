@@ -60,7 +60,8 @@ interface_resize(gpointer data)
 
 	/* NULL := display old status */
 	interface_set_status(ctx, NULL); 
-	print_sink_list(ctx);
+	interface_redraw(ctx);
+
 	return TRUE;
 }
 
@@ -140,7 +141,7 @@ set_max_name_len(struct context *ctx)
 }
 
 void
-print_sink_list(struct context *ctx)
+interface_redraw(struct context *ctx)
 {
 	struct sink_info *sink;
 	gint i = -1;

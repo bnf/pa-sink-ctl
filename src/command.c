@@ -66,7 +66,7 @@ up(struct context *ctx, int key)
 	} else if (ctx->chooser_input >= 0)
 		--ctx->chooser_input;
 
-	print_sink_list(ctx);
+	interface_redraw(ctx);
 }
 
 static void
@@ -82,7 +82,7 @@ down(struct context *ctx, int key)
 	}
 	else if (ctx->chooser_input < (sink_input_len(ctx, sink) - 1))
 		++ctx->chooser_input;
-	print_sink_list(ctx);
+	interface_redraw(ctx);
 }
 
 static void

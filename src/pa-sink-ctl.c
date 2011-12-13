@@ -66,7 +66,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 	}
 
 	if (is_last) {
-		print_sink_list(ctx);
+		interface_redraw(ctx);
 		return;
 	}
 
@@ -150,7 +150,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 	}
 
 	if (is_last) {
-		print_sink_list(ctx);
+		interface_redraw(ctx);
 		return;
 	}
 
@@ -215,7 +215,7 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 		default:
 			return;
 		}
-		print_sink_list(ctx);
+		interface_redraw(ctx);
 		break;
 	default:
 		break;
