@@ -88,9 +88,10 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 	};
 
 	struct sink_input_info *inlist = find_sink_input_by_idx(ctx, i->index);
-	if (inlist)
+	if (inlist) {
+		g_free(inlist->name);
 		*inlist = sink_input;
-	else
+	} else
 		list_append_struct(ctx->input_list, sink_input);
 }
 
@@ -167,9 +168,10 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 	};
 
 	struct sink_info *inlist = find_sink_by_idx(ctx, i->index);
-	if (inlist)
+	if (inlist) {
+		g_free(inlist->name);
 		*inlist = sink;
-	else
+	} else
 		ctx->sink_list =
 			g_list_insert_sorted(ctx->sink_list,
 					     g_memdup(&sink, sizeof sink),
