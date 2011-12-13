@@ -355,6 +355,7 @@ main(int argc, char** argv)
 			       PA_CONTEXT_NOAUTOSPAWN, NULL)) {
 		interface_clear(ctx);
 		g_printerr("error: pa_context_connect() failed.\n");
+		return -1;
 	}
 
 	g_main_loop_run(ctx->loop);
