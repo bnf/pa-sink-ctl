@@ -17,6 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glib.h>
+
 #include "pa-sink-ctl.h"
 #include "interface.h"
 #include "sink.h"
@@ -111,8 +113,10 @@ volume_change(struct context *ctx, gboolean volume_increment)
 		volume     = (pa_cvolume) { .channels = sink->channels };
 		tmp_vol    = sink->vol;
 		volume_set = pa_context_set_sink_volume_by_index;
-	} else
+	} else {
+		g_assert(0);
 		return;
+	}
 
 	pa_cvolume_set(&volume, volume.channels, tmp_vol);
 	pa_volume_t inc = 2 * PA_VOLUME_NORM / 100;
@@ -165,8 +169,10 @@ mute(struct context *ctx, int key)
 		index    = sink->index;
 		mute     = !sink->mute;
 		mute_set = pa_context_set_sink_mute_by_index;
-	} else
+	} else {
+		g_assert(0);
 		return;
+	}
 
 	pa_operation_unref(mute_set(ctx->context, index, mute,
 				    change_callback, ctx));
