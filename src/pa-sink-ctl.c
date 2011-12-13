@@ -281,9 +281,8 @@ context_state_callback(pa_context *c, gpointer userdata)
 		interface_set_status(ctx, "ready to process events.");
 		break;
 	case PA_CONTEXT_FAILED:
-		interface_set_status(ctx, "cannot connect!");
+		interface_set_status(ctx, "connection lost!");
 		break;
-
 	case PA_CONTEXT_TERMINATED:
 		g_assert(ctx->op != NULL);
 		pa_operation_cancel(ctx->op);
