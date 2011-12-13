@@ -1,8 +1,28 @@
+/*
+ * pa-sink-ctl - NCurses based Pulseaudio control client
+ * Copyright (C) 2011  Benjamin Franzke <benjaminfranzke@googlemail.com>
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <glib.h>
 #include <string.h>
 
 #include "pa-sink-ctl.h"
 #include "config.h"
+
+#include "command.h"
 
 static int
 parse_priorities(struct config *cfg)
@@ -76,6 +96,59 @@ read_settings(struct config *cfg)
 	return 0;
 }
 
+static unsigned int
+read_int(const char *string)
+{
+	unsigned int value;
+
+	if (string[1] == 'x')
+		sscanf(string, "%x", &value);
+	else
+		sscanf(string, "%o", &value);
+
+	return value;
+}
+
+static int
+read_input_mappings(struct config *cfg)
+{
+	int i, j;
+	gchar **list;
+	GError *error = NULL;
+
+	cfg->keymap = g_hash_table_new(g_direct_hash, g_direct_equal);
+	if (cfg->keymap == NULL)
+		return -1;
+
+	for (i = 0; command_cbs[i].command; ++i) {
+		char *attrib = command_cbs[i].command;
+
+		error = NULL;
+		list = g_key_file_get_string_list(cfg->keyfile, "input",
+						  attrib, NULL, &error);
+		if (error) {
+			g_printerr("error reading keymap for '%s': %s\n",
+				   attrib, error->message);
+			return -1;
+		}
+
+		for (j = 0; list[j]; ++j) {
+			int key;
+			if (strlen(list[j]) == 0)
+				continue;
+
+			if (strlen(list[j]) > 2 && list[j][0] == '0') {
+				key = read_int(list[j]);
+			} else
+				key = list[j][0];
+			g_hash_table_insert(cfg->keymap, GINT_TO_POINTER(key),
+					    &command_cbs[i]);
+		}
+	}
+
+	return 0;
+}
+
 int
 config_init(struct config *cfg)
 {
@@ -109,6 +182,8 @@ config_init(struct config *cfg)
 
 	if (parse_priorities(cfg) < 0)
 		return -1;
+	if (read_input_mappings(cfg) < 0)
+		return -1;
 
 	return 0;
 }
@@ -118,6 +193,7 @@ config_uninit(struct config *cfg)
 {
 	g_list_free_full(cfg->priorities, destroy_priority);
 
+	g_hash_table_destroy(cfg->keymap);
 	g_strfreev(cfg->name_props);
 	g_key_file_free(cfg->keyfile);
 }

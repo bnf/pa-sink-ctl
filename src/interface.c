@@ -27,6 +27,7 @@
 
 #include "interface.h"
 #include "sink.h"
+#include "command.h"
 #include "pa-sink-ctl.h"
 
 #ifdef HAVE_SIGNALFD
@@ -35,43 +36,6 @@
 #else
 #include "unix_signal.h"
 #endif
-
-#define H_MSG_BOX 3
-
-#define SELECTED_SINK -1
-
-static int
-sink_input_len(struct context *ctx, struct sink_info *sink)
-{
-	int len = 0;
-	GList *l;
-
-	for (l = ctx->input_list; l; l = l->next) {
-		struct sink_input_info *input = l->data;
-
-		if (input->sink == sink->index)
-			len++;
-	}
-
-	return len;
-}
-
-static struct sink_input_info *
-sink_get_nth_input(struct context *ctx, struct sink_info *sink, int n)
-{
-	GList *l;
-	int i = 0;
-
-	for (l = ctx->input_list; l; l = l->next) {
-		struct sink_input_info *input = l->data;
-		if (input->sink != sink->index)
-			continue;
-		if (i++ == n)
-			return input;
-	}
-
-	return NULL;
-}
 
 static gboolean
 interface_resize(gpointer data)
@@ -218,164 +182,17 @@ static gboolean
 interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 {
 	struct context *ctx = data;
+	struct command_cb_descriptor *cmd;
 	gint c;
-	gboolean volume_increment = TRUE;
-	struct sink_info *sink = NULL;
-	guint32 index;
-	pa_operation *o;
 
 	if (!ctx->context_ready)
 		return TRUE;
 
 	c = wgetch(ctx->menu_win);
-	switch (c) {
-	case 'k':
-	case 'w':
-	case KEY_UP:
-		if (ctx->chooser_input == SELECTED_SINK &&
-		    ctx->chooser_sink > 0) {
-			sink = g_list_nth_data(ctx->sink_list,
-					       --ctx->chooser_sink);
-			/* autoassigment to SELECTED_SINK (=-1) if length = 0 */
-			ctx->chooser_input = sink_input_len(ctx, sink) - 1;
-		}
 
-		else if (ctx->chooser_input >= 0)
-			--ctx->chooser_input;
-		print_sink_list(ctx);
-		break;
-
-	case 'j':
-	case 's':
-	case KEY_DOWN:
-		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		if (ctx->chooser_input == (sink_input_len(ctx, sink) - 1) &&
-		    ctx->chooser_sink < (gint)g_list_length(ctx->sink_list)-1) {
-			++ctx->chooser_sink;
-			ctx->chooser_input = SELECTED_SINK;
-		}
-		else if (ctx->chooser_input < (sink_input_len(ctx, sink) - 1))
-			++ctx->chooser_input;
-		print_sink_list(ctx);
-		break;
-
-	case 'h':
-	case 'a':
-	case KEY_LEFT:
-		volume_increment = FALSE;
-		/* fall through */
-	case 'l':
-	case 'd':
-	case KEY_RIGHT:
-		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		pa_cvolume volume;
-		pa_volume_t tmp_vol;
-		pa_operation* (*volume_set) (pa_context*, guint32,
-					     const pa_cvolume *,
-					     pa_context_success_cb_t, gpointer);
-
-		if (ctx->chooser_input >= 0) {
-			struct sink_input_info *input =
-				sink_get_nth_input(ctx, sink,
-						   ctx->chooser_input);
-			index      = input->index;
-			volume     = (pa_cvolume) {.channels = input->channels};
-			tmp_vol    = input->vol; 
-			volume_set = pa_context_set_sink_input_volume;
-		} else if (ctx->chooser_input == SELECTED_SINK) {
-			index      = sink->index;
-			volume     = (pa_cvolume) {.channels = sink->channels};
-			tmp_vol    = sink->vol;
-			volume_set = pa_context_set_sink_volume_by_index;
-		} else
-			break;
-
-		pa_cvolume_set(&volume, volume.channels, tmp_vol);
-		pa_volume_t inc = 2 * PA_VOLUME_NORM / 100;
-
-		if (volume_increment)
-			if (PA_VOLUME_NORM > tmp_vol &&
-			    PA_VOLUME_NORM - tmp_vol > inc)
-				pa_cvolume_inc(&volume, inc);
-			else
-				pa_cvolume_set(&volume, volume.channels,
-					       PA_VOLUME_NORM);
-		else
-			pa_cvolume_dec(&volume, inc);
-
-
-		pa_operation_unref(volume_set(ctx->context, index, &volume,
-					      change_callback, ctx));
-		break;
-	case 'm':
-	case 'x':
-	case 'M':
-		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		gint mute;
-		pa_operation* (*mute_set) (pa_context*, guint32, int,
-					   pa_context_success_cb_t, void*);
-
-		if (ctx->chooser_input >= 0) {
-			struct sink_input_info *input =
-				sink_get_nth_input(ctx, sink,
-						   ctx->chooser_input);
-			index    = input->index;
-			mute     = !input->mute;
-			mute_set = pa_context_set_sink_input_mute;
-		} else if (ctx->chooser_input == SELECTED_SINK) {
-			index    = sink->index;
-			mute     = !sink->mute;
-			mute_set = pa_context_set_sink_mute_by_index;
-		} else
-			break;
-
-		pa_operation_unref(mute_set(ctx->context, index, mute,
-					    change_callback, ctx));
-		break;
-
-	case '\n':
-	case '\t':
-	case ' ':
-		if (ctx->chooser_input == SELECTED_SINK)
-			break;
-		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		struct sink_input_info *input =
-			sink_get_nth_input(ctx, sink, ctx->chooser_input);
-		if (g_list_length(ctx->sink_list) <= 1)
-		    break;
-		if (ctx->chooser_sink < (gint)g_list_length(ctx->sink_list) - 1)
-			ctx->chooser_sink++;
-		else
-			ctx->chooser_sink = 0;
-
-		sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-		/* chooser_input needs to be derived from $selected_index */
-		o = pa_context_move_sink_input_by_index(ctx->context,
-							input->index,
-							sink->index,
-							change_callback, NULL);
-		pa_operation_unref(o);
-
-		/* get new chooser_input, if non, select sink as fallback */
-		ctx->chooser_input = SELECTED_SINK; 
-		gint i = -1;
-		for (GList *l = ctx->input_list; l; l = l->next) {
-			struct sink_input_info *t = l->data;
-
-			if (t->index == input->index) {
-				ctx->chooser_input = ++i;
-				break;
-			}
-			if (t->sink == sink->index)
-				++i;
-		}
-		break;
-
-	case 'q':
-	default:
-		quit(ctx);
-		break;
-	}
+	cmd = g_hash_table_lookup(ctx->config.keymap, GINT_TO_POINTER(c));
+	if (cmd)
+		cmd->cb(ctx, c);
 
 	return TRUE;
 }

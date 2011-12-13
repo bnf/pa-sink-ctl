@@ -16,29 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef COMMAND_H
+#define COMMAND_H
 
-#include <glib.h>
+struct context;
 
-struct config {
-	GKeyFile *keyfile;
+typedef void (*command_cb)(struct context *ctx, int key);
 
-	GList *priorities;
-	gchar **name_props;
-
-	GHashTable *keymap;
+struct command_cb_descriptor {
+	char *command;
+	command_cb cb;
 };
 
-struct priority {
-	gchar *match, *value;
-	gint priority;
-};
+extern struct command_cb_descriptor command_cbs[];
 
-int
-config_init(struct config *cfg);
-
-void
-config_uninit(struct config *cfg);
-
-#endif /* CONFIG_H */
+#endif /* COMMAND_H */

@@ -23,6 +23,8 @@
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 
+#define SELECTED_SINK -1
+#define H_MSG_BOX 3
 
 struct context;
 
