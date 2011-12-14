@@ -27,28 +27,11 @@
 #include "config.h"
 #include "pa-sink-ctl.h"
 
-static struct sink_input_info *
-find_sink_input_by_idx(struct context *ctx, gint idx)
+/* Used for sink(_inputs) index comparison, since index is the first member */
+static gint
+compare_idx_pntr(gconstpointer i1, gconstpointer i2)
 {
-	struct sink_input_info *input;
-
-	list_foreach(ctx->input_list, input)
-		if (input->index == idx)
-			return input;
-
-	return NULL;
-}
-
-static struct sink_info *
-find_sink_by_idx(struct context *ctx, gint idx)
-{
-	struct sink_info *sink;
-
-	list_foreach(ctx->sink_list, sink)
-		if (sink->index == idx)
-			return sink;
-
-	return NULL;
+	return *((const guint32 *) i1) == *((const guint32 *) i2) ? 0 : -1;
 }
 
 static void
@@ -57,6 +40,8 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 {
 	g_assert(userdata != NULL);
 	struct context *ctx = userdata;
+	struct sink_input_info *sink_input;
+	GList *el;
 
 	if (is_last < 0) {
 		if (pa_context_errno(c) == PA_ERR_NOENTITY)
@@ -74,25 +59,26 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 
 	if (!(i->client != PA_INVALID_INDEX)) return;
 
-	struct sink_input_info sink_input = {
-		.index = i->index,
-		.sink = i->sink,
-		.name = pa_proplist_contains(i->proplist, "application.name") ?
-			g_strdup(pa_proplist_gets(i->proplist,
-						  "application.name")):
-			g_strdup(i->name),
-		.mute = i->mute,
-		.channels = i->volume.channels,
-		.vol = pa_cvolume_avg(&i->volume),
-		.pid = NULL /* maybe obsolete */
-	};
+	el = g_list_find_custom(ctx->input_list, &i->index, compare_idx_pntr);
+	if (el == NULL) {
+		sink_input = g_new(struct sink_input_info, 1);
+		if (sink_input == NULL)
+			return;
+		sink_input->index = i->index;
+		ctx->input_list = g_list_append(ctx->input_list, sink_input);
+	} else {
+		sink_input = el->data;
+		g_free(sink_input->name);
+	}
 
-	struct sink_input_info *inlist = find_sink_input_by_idx(ctx, i->index);
-	if (inlist) {
-		g_free(inlist->name);
-		*inlist = sink_input;
-	} else
-		list_append_struct(ctx->input_list, sink_input);
+	sink_input->sink = i->sink;
+	sink_input->name =
+		pa_proplist_contains(i->proplist, "application.name") ?
+		g_strdup(pa_proplist_gets(i->proplist, "application.name")) :
+		g_strdup(i->name);
+	sink_input->mute = i->mute;
+	sink_input->channels = i->volume.channels;
+	sink_input->vol = pa_cvolume_avg(&i->volume);
 }
 
 static int
@@ -143,6 +129,8 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 {
 	g_assert(userdata != NULL);
 	struct context *ctx = userdata;
+	struct sink_info *sink;
+	GList *el;
 
 	if (is_last < 0) {
 		if (pa_context_errno(c) == PA_ERR_NOENTITY)
@@ -158,24 +146,24 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		return;
 	}
 
-	struct sink_info sink = {
-		.index = i->index,
-		.mute  = i->mute,
-		.vol   = pa_cvolume_avg(&i->volume),
-		.channels = i->volume.channels,
-		.name = get_sink_name(ctx, i),
-		.priority = get_sink_priority(ctx, i),
-	};
+	el = g_list_find_custom(ctx->sink_list, &i->index, compare_idx_pntr);
+	if (el == NULL) {
+		sink = g_new(struct sink_info, 1);
+		if (sink == NULL)
+			return;
+		sink->index = i->index;
+		sink->priority = get_sink_priority(ctx, i);
+		ctx->sink_list = g_list_insert_sorted(ctx->sink_list, sink,
+						      compare_sink_priority);
+	} else {
+		sink = el->data;
+		g_free(sink->name);
+	}
 
-	struct sink_info *inlist = find_sink_by_idx(ctx, i->index);
-	if (inlist) {
-		g_free(inlist->name);
-		*inlist = sink;
-	} else
-		ctx->sink_list =
-			g_list_insert_sorted(ctx->sink_list,
-					     g_memdup(&sink, sizeof sink),
-					     compare_sink_priority);
+	sink->mute     = i->mute;
+	sink->vol      = pa_cvolume_avg(&i->volume);
+	sink->channels = i->volume.channels;
+	sink->name     = get_sink_name(ctx, i);
 }
 
 static void
@@ -202,7 +190,7 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 {
 	struct context *ctx = userdata;
 	pa_operation *op;
-	gpointer object;
+	GList *el;
 
 	switch (t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) {
 	case PA_SUBSCRIPTION_EVENT_NEW:
@@ -225,19 +213,21 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 	case PA_SUBSCRIPTION_EVENT_REMOVE:
 		switch (t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) {
 		case PA_SUBSCRIPTION_EVENT_SINK:
-			object = find_sink_by_idx(ctx, idx);
-			if (object == NULL)
+			el = g_list_find_custom(ctx->sink_list, &idx,
+						compare_idx_pntr);
+			if (el == NULL)
 				break;
-			ctx->sink_list = g_list_remove(ctx->sink_list, object);
-			sink_free(object);
+			sink_free(el->data);
+			ctx->sink_list = g_list_delete_link(ctx->sink_list, el);
 			break;
 		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
-			object = find_sink_input_by_idx(ctx, idx);
-			if (object == NULL)
+			el = g_list_find_custom(ctx->input_list, &idx,
+						compare_idx_pntr);
+			if (el == NULL)
 				break;
-			ctx->input_list = g_list_remove(ctx->input_list,
-							object);
-			sink_input_free(object);
+			sink_input_free(el->data);
+			ctx->input_list =
+				g_list_delete_link(ctx->input_list, el);
 			break;
 		default:
 			return;

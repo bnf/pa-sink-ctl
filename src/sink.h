@@ -36,7 +36,6 @@ struct sink_input_info {
 	guint32 index;
 	guint32 sink;
 	gchar *name;
-	gchar *pid;	// maybe useless?!!?
 	gint mute;
 	guint8 channels;
 	pa_volume_t vol; // TOTO: exchange with the channel-list
