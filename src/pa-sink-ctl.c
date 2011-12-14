@@ -34,6 +34,86 @@ compare_idx_pntr(gconstpointer i1, gconstpointer i2)
 	return *((const guint32 *) i1) == *((const guint32 *) i2) ? 0 : -1;
 }
 
+static int
+get_sink_priority(struct context *ctx, const pa_sink_info *sink_info)
+{
+	struct priority *p;
+
+	list_foreach(ctx->config.priorities, p)
+		if (g_strcmp0(pa_proplist_gets(sink_info->proplist, p->match),
+			      p->value))
+			return p->priority;
+
+	return 0;
+}
+
+static gchar *
+get_sink_name(struct context *ctx, const pa_sink_info *sink)
+{
+	struct config *cfg = &ctx->config;
+	int i;
+
+	for (i = 0; cfg->name_props && cfg->name_props[i]; ++i)
+		if (pa_proplist_contains(sink->proplist, cfg->name_props[i]))
+			return g_strdup(pa_proplist_gets(sink->proplist,
+							 cfg->name_props[i]));
+
+	return g_strdup(sink->name);
+}
+
+static gint
+compare_sink_priority(gconstpointer new_data, gconstpointer el_data)
+{
+	const struct sink_info *new = new_data;
+	const struct sink_info *el = el_data;
+
+	/* Add 1 to append at end of sinks if priority equals */
+	return el->priority - new->priority + 1;
+}
+
+static void
+sink_info_cb(pa_context *c, const pa_sink_info *i,
+	     gint is_last, gpointer userdata)
+{
+	g_assert(userdata != NULL);
+	struct context *ctx = userdata;
+	struct sink_info *sink;
+	GList *el;
+
+	if (is_last < 0) {
+		if (pa_context_errno(c) == PA_ERR_NOENTITY)
+			return;
+		interface_set_status(ctx,
+				     "Failed to get sink information: %s\n",
+				     pa_strerror(pa_context_errno(c)));
+		return;
+	}
+
+	if (is_last) {
+		interface_redraw(ctx);
+		return;
+	}
+
+	el = g_list_find_custom(ctx->sink_list, &i->index, compare_idx_pntr);
+	if (el == NULL) {
+		sink = g_new(struct sink_info, 1);
+		if (sink == NULL)
+			return;
+		sink->index = i->index;
+		sink->priority = get_sink_priority(ctx, i);
+		ctx->sink_list = g_list_insert_sorted(ctx->sink_list, sink,
+						      compare_sink_priority);
+	} else {
+		sink = el->data;
+		g_free(sink->name);
+	}
+
+	sink->mute     = i->mute;
+	sink->vol      = pa_cvolume_avg(&i->volume);
+	sink->channels = i->volume.channels;
+	sink->name     = get_sink_name(ctx, i);
+}
+
 static void
 sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		   gint is_last, gpointer userdata)
@@ -79,91 +159,6 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 	sink_input->mute = i->mute;
 	sink_input->channels = i->volume.channels;
 	sink_input->vol = pa_cvolume_avg(&i->volume);
-}
-
-static int
-get_sink_priority(struct context *ctx, const pa_sink_info *sink_info)
-{
-	struct priority *p;
-	const char *value;
-
-	list_foreach(ctx->config.priorities, p) {
-		value = pa_proplist_gets(sink_info->proplist, p->match);
-
-		if (g_strcmp0(value, p->value) == 0)
-			return p->priority;
-	}
-
-	return 0;
-}
-
-static gint
-compare_sink_priority(gconstpointer new_data, gconstpointer el_data)
-{
-	const struct sink_info *new = new_data;
-	const struct sink_info *el = el_data;
-
-	/* Add 1 to append at end of sinks if priority equals */
-	return el->priority - new->priority + 1;
-}
-
-static gchar *
-get_sink_name(struct context *ctx, const pa_sink_info *sink)
-{
-	struct config *cfg = &ctx->config;
-	int i;
-
-	for (i = 0; cfg->name_props && cfg->name_props[i]; ++i) {
-		if (pa_proplist_contains(sink->proplist,
-					 cfg->name_props[i]))
-			return g_strdup(pa_proplist_gets(sink->proplist,
-							 cfg->name_props[i]));
-	}
-	
-	return g_strdup(sink->name);
-}
-
-static void
-sink_info_cb(pa_context *c, const pa_sink_info *i,
-	     gint is_last, gpointer userdata)
-{
-	g_assert(userdata != NULL);
-	struct context *ctx = userdata;
-	struct sink_info *sink;
-	GList *el;
-
-	if (is_last < 0) {
-		if (pa_context_errno(c) == PA_ERR_NOENTITY)
-			return;
-		interface_set_status(ctx,
-				     "Failed to get sink information: %s\n",
-				     pa_strerror(pa_context_errno(c)));
-		return;
-	}
-
-	if (is_last) {
-		interface_redraw(ctx);
-		return;
-	}
-
-	el = g_list_find_custom(ctx->sink_list, &i->index, compare_idx_pntr);
-	if (el == NULL) {
-		sink = g_new(struct sink_info, 1);
-		if (sink == NULL)
-			return;
-		sink->index = i->index;
-		sink->priority = get_sink_priority(ctx, i);
-		ctx->sink_list = g_list_insert_sorted(ctx->sink_list, sink,
-						      compare_sink_priority);
-	} else {
-		sink = el->data;
-		g_free(sink->name);
-	}
-
-	sink->mute     = i->mute;
-	sink->vol      = pa_cvolume_avg(&i->volume);
-	sink->channels = i->volume.channels;
-	sink->name     = get_sink_name(ctx, i);
 }
 
 static void
