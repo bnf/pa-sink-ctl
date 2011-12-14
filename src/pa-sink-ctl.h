@@ -59,9 +59,6 @@ struct context {
 void
 quit(struct context *ctx);
 
-void
-change_callback(pa_context* c, gint success, gpointer);
-
 #define list_append_struct(list, data) \
 	do { \
 		(list) = g_list_append((list), \

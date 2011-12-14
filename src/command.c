@@ -137,8 +137,7 @@ volume_change(struct context *ctx, gboolean volume_increment)
 		pa_cvolume_dec(&volume, inc);
 
 
-	pa_operation_unref(volume_set(ctx->context, index, &volume,
-				      change_callback, ctx));
+	pa_operation_unref(volume_set(ctx->context, index, &volume, NULL,NULL));
 }
 
 static void
@@ -182,8 +181,7 @@ mute(struct context *ctx, int key)
 		return;
 	}
 
-	pa_operation_unref(mute_set(ctx->context, index, mute,
-				    change_callback, ctx));
+	pa_operation_unref(mute_set(ctx->context, index, mute, NULL, NULL));
 }
 
 static void
@@ -212,7 +210,7 @@ switch_sink(struct context *ctx, int key)
 	/* chooser_input needs to be derived from $selected_index */
 	o = pa_context_move_sink_input_by_index(ctx->context,
 						input->index, sink->index,
-						change_callback, NULL);
+						NULL, NULL);
 	pa_operation_unref(o);
 
 	/* get new chooser_input, if non, select sink as fallback */

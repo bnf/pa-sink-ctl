@@ -298,18 +298,6 @@ quit(struct context *ctx)
 	g_main_loop_quit(ctx->loop);
 }
 
-/*
- * is called, after user input
- */
-void
-change_callback(pa_context* c, gint success, gpointer userdata)
-{
-#if 0
-	struct context *ctx = userdata;
-#endif
-	return;
-}
-
 int
 main(int argc, char** argv)
 {
