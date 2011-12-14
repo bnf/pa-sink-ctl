@@ -29,8 +29,7 @@ parse_priorities(struct config *cfg)
 {
 	gchar **groups;
 	struct priority p;
-	int i;
-	gsize length;
+	gsize i, length;
 	GError *error = NULL;
 
 	groups = g_key_file_get_groups(cfg->keyfile, &length);
@@ -124,7 +123,7 @@ read_input_mappings(struct config *cfg)
 		return -1;
 
 	for (i = 0; command_cbs[i].command; ++i) {
-		char *attrib = command_cbs[i].command;
+		const char *attrib = command_cbs[i].command;
 
 		error = NULL;
 		list = g_key_file_get_string_list(cfg->keyfile, "input",
@@ -160,7 +159,7 @@ config_init(struct config *cfg)
 	const gchar *home_dirs[] = { g_get_user_config_dir(), NULL };
 	const gchar * const * dirs_array[] = { home_dirs, g_get_system_config_dirs() };
 	GError *error;
-	int i;
+	gsize i;
 
 	memset(cfg, 0, sizeof *cfg);
 	cfg->keyfile = g_key_file_new();

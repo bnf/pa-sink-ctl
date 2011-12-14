@@ -24,7 +24,7 @@ struct context;
 typedef void (*command_cb)(struct context *ctx, int key);
 
 struct command_cb_descriptor {
-	char *command;
+	const char *command;
 	command_cb cb;
 };
 

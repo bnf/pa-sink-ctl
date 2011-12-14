@@ -93,13 +93,14 @@ print_input_list(struct context *ctx, struct sink_info *sink,
 {
 	struct sink_input_info *input;
 	gint offset = *poffset;
+	gboolean selected;
 	gint i = -1;
 
 	list_foreach(ctx->input_list, input) {
 		if (input->sink != sink->index)
 			continue;
-		gboolean selected = (ctx->chooser_sink == sink_num &&
-				     ctx->chooser_input == ++i);
+		selected = (ctx->chooser_sink == sink_num &&
+			    ctx->chooser_input == ++i);
 
 		if (selected)
 			wattron(ctx->menu_win, A_REVERSE);

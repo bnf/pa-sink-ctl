@@ -75,7 +75,6 @@ static void
 sink_info_cb(pa_context *c, const pa_sink_info *i,
 	     gint is_last, gpointer userdata)
 {
-	g_assert(userdata != NULL);
 	struct context *ctx = userdata;
 	struct sink_info *sink;
 	GList *el;
@@ -118,7 +117,6 @@ static void
 sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		   gint is_last, gpointer userdata)
 {
-	g_assert(userdata != NULL);
 	struct context *ctx = userdata;
 	struct sink_input_info *sink_input;
 	GList *el;
@@ -263,10 +261,13 @@ context_state_callback(pa_context *c, gpointer userdata)
 		pa_operation_unref(op);
 
 		pa_context_set_subscribe_callback(c, subscribe_cb, ctx);
-		pa_subscription_mask_t mask =
-			PA_SUBSCRIPTION_MASK_SINK |
-			PA_SUBSCRIPTION_MASK_SINK_INPUT;
-		g_assert((ctx->op = pa_context_subscribe(c, mask, NULL, NULL)));
+		{
+			pa_subscription_mask_t mask =
+				PA_SUBSCRIPTION_MASK_SINK |
+				PA_SUBSCRIPTION_MASK_SINK_INPUT;
+			g_assert((ctx->op = pa_context_subscribe(c, mask,
+								 NULL, NULL)));
+		}
 		ctx->context_ready = TRUE;
 		interface_set_status(ctx, "ready to process events.");
 		break;

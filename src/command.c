@@ -97,16 +97,15 @@ volume_change(struct context *ctx, gboolean volume_increment)
 	struct sink_info *sink;
 	struct sink_input_info *input;
 	guint32 index;
+	pa_cvolume volume;
+	pa_volume_t tmp_vol, inc;
+	pa_operation* (*volume_set) (pa_context*, guint32, const pa_cvolume *,
+				     pa_context_success_cb_t, gpointer);
 
 	if (!ctx->context_ready)
 		return;
 
 	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-	pa_cvolume volume;
-	pa_volume_t tmp_vol;
-	pa_operation* (*volume_set) (pa_context*, guint32, const pa_cvolume *,
-				     pa_context_success_cb_t, gpointer);
-
 	if (ctx->chooser_input >= 0) {
 		input      = sink_get_nth_input(ctx, sink, ctx->chooser_input);
 		index      = input->index;
@@ -124,7 +123,7 @@ volume_change(struct context *ctx, gboolean volume_increment)
 	}
 
 	pa_cvolume_set(&volume, volume.channels, tmp_vol);
-	pa_volume_t inc = 2 * PA_VOLUME_NORM / 100;
+	inc = 2 * PA_VOLUME_NORM / 100;
 
 	if (volume_increment)
 		if (PA_VOLUME_NORM > tmp_vol &&
@@ -153,19 +152,19 @@ volume_up(struct context *ctx, int key)
 }
 
 static void
-mute(struct context *ctx, int key)
+do_mute(struct context *ctx, int key)
 {
 	struct sink_info *sink;
 	struct sink_input_info *input;
 	guint32 index;
 	gint mute;
+	pa_operation* (*mute_set) (pa_context*, guint32, int,
+				   pa_context_success_cb_t, void*);
 
 	if (!ctx->context_ready)
 		return;
 
 	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-	pa_operation* (*mute_set) (pa_context*, guint32, int,
-				   pa_context_success_cb_t, void*);
 
 	if (ctx->chooser_input >= 0) {
 		input    = sink_get_nth_input(ctx, sink, ctx->chooser_input);
@@ -237,7 +236,7 @@ struct command_cb_descriptor command_cbs[] = {
 	{ "down",        down },
 	{ "volume-down", volume_down },
 	{ "volume-up",   volume_up },
-	{ "mute",        mute },
+	{ "mute",        do_mute },
 	{ "switch",      switch_sink },
 	{ "quit",        quit_cmd },
 	{ NULL,          NULL }
