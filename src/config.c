@@ -168,7 +168,7 @@ config_init(struct config *cfg)
 	for (i = 0; i < G_N_ELEMENTS(dirs_array); ++i) {
 		error = NULL;
 		if (g_key_file_load_from_dirs(cfg->keyfile,
-					      "pa-sink-ctl/config.ini",
+					      "pa-sink-ctl/config",
 					      (const gchar **) dirs_array[i],
 					      NULL, G_KEY_FILE_NONE, &error)
 		    && !error)

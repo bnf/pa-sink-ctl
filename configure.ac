@@ -21,7 +21,7 @@ AM_SILENT_RULES([yes])
 
 AC_CONFIG_SRCDIR([src/pa-sink-ctl.c])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile data/Makefile])
 
 # Checks for programs.
 AC_PROG_CC
