@@ -41,7 +41,7 @@ get_sink_priority(struct context *ctx, const pa_sink_info *sink_info)
 
 	list_foreach(ctx->config.priorities, p)
 		if (g_strcmp0(pa_proplist_gets(sink_info->proplist, p->match),
-			      p->value))
+			      p->value) == 0)
 			return p->priority;
 
 	return 0;
