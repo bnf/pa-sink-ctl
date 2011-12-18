@@ -37,6 +37,7 @@ struct context {
 	GList *sink_list;
 	GList *source_list;
 	GList *input_list;
+	GList *output_list;
 
 	struct interface interface;
 	struct config config;

@@ -27,13 +27,13 @@ struct context;
 
 struct vol_ctl {
 	guint32 index;
-	pa_volume_t vol; // TOTO: exchange with the channel-list
-	gint mute;
-	guint8 channels;
-
 	gchar *name; /* displayed name */
 	gint indent; /* indentation when displayed */
 	gboolean hide_index;
+
+	pa_volume_t vol; // TOTO: exchange with the channel-list
+	gint mute;
+	guint8 channels;
 
 	pa_operation *(*mute_set)(pa_context *, guint32, int,
 				  pa_context_success_cb_t, void *);
@@ -53,6 +53,11 @@ struct sink {
 struct sink_input {
 	struct vol_ctl base;
 	guint32 sink;
+};
+
+struct source_output {
+	struct vol_ctl base;
+	guint32 source;
 };
 
 struct source {

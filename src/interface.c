@@ -105,6 +105,9 @@ print_volume(struct interface *ifc, struct vol_ctl *ctl)
 {
 	gint vol;
 
+	if (!ctl->mute_set || !ctl->volume_set)
+		return;
+
 	allocate_volume_bar(ifc);
 	vol = (gint) (ifc->volume_bar_len * ctl->vol / PA_VOLUME_NORM);
 	wprintw(ifc->menu_win, " [%c][%-*.*s]",

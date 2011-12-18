@@ -89,7 +89,7 @@ volume_change(struct context *ctx, gboolean volume_increment)
 		return;
 
 	ctl = interface_get_current_ctl(&ctx->interface, NULL);
-	if (!ctl)
+	if (!ctl || !ctl->volume_set)
 		return;
 
 	volume.channels = ctl->channels;
@@ -132,7 +132,7 @@ toggle_mute(struct context *ctx, int key)
 		return;
 
 	ctl = interface_get_current_ctl(&ctx->interface, NULL);
-	if (!ctl)
+	if (!ctl && !ctl->mute_set)
 		return;
 
 	o = ctl->mute_set(ctx->context, ctl->index, !ctl->mute, NULL, NULL);
