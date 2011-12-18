@@ -91,7 +91,7 @@ down(struct context *ctx, int key)
 	interface_redraw(ctx);
 }
 
-static struct vol_ctl_object *
+static struct vol_ctl *
 interface_get_current_ctl(struct context *ctx)
 {
 	struct sink_info *sink;
@@ -117,7 +117,7 @@ interface_get_current_ctl(struct context *ctx)
 static void
 volume_change(struct context *ctx, gboolean volume_increment)
 {
-	struct vol_ctl_object *ctl;
+	struct vol_ctl *ctl;
 	pa_operation *o;
 	pa_cvolume volume;
 	pa_volume_t inc;
@@ -163,7 +163,7 @@ volume_up(struct context *ctx, int key)
 static void
 do_mute(struct context *ctx, int key)
 {
-	struct vol_ctl_object *ctl;
+	struct vol_ctl *ctl;
 	pa_operation *o;
 
 	if (!ctx->context_ready)

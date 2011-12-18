@@ -122,7 +122,7 @@ print_input_list(struct context *ctx, struct sink_info *sink,
 static void
 set_max_name_len(struct context *ctx)
 {
-	struct vol_ctl_object *ctl;
+	struct vol_ctl *ctl;
 	guint len = 0;
 	ctx->max_name_len = len;
 

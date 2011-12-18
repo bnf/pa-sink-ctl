@@ -25,7 +25,7 @@
 
 struct context;
 
-struct vol_ctl_object {
+struct vol_ctl {
 	guint32 index;
 	pa_volume_t vol; // TOTO: exchange with the channel-list
 	gint mute;
@@ -41,12 +41,12 @@ struct vol_ctl_object {
 };
 
 struct sink_info {
-	struct vol_ctl_object base;
+	struct vol_ctl base;
 	gint priority;
 };
 
 struct sink_input_info {
-	struct vol_ctl_object base;
+	struct vol_ctl base;
 	guint32 sink;
 };
 
