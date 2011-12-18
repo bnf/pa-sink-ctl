@@ -113,11 +113,12 @@ interface_resize(gpointer data)
 static void
 print_volume(struct context *ctx, struct vol_ctl *ctl)
 {
-	gint x, y, volume_bar_len, vol;
+	gint x, y, max_x, max_y, volume_bar_len, vol;
 
 	getyx(ctx->menu_win, y, x);
+	getmaxyx(ctx->menu_win, max_y, max_x);
 	/* mute button + brackets + space */
-	volume_bar_len = getmaxx(ctx->menu_win) - x - 8;
+	volume_bar_len = max_x - x - 8;
 	vol = (gint) (volume_bar_len * ctl->vol / PA_VOLUME_NORM);
 
 	wprintw(ctx->menu_win, " [%c]", ctl->mute ? 'M' : ' ');
