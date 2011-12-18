@@ -72,6 +72,17 @@ compare_sink_priority(gconstpointer new_data, gconstpointer el_data)
 }
 
 static void
+sink_childs_foreach(struct vol_ctl *ctl, GFunc func, gpointer user_data)
+{
+	struct sink_info *sink = (struct sink_info *) ctl;
+	struct sink_input_info *input;
+
+	list_foreach(sink->ctx->input_list, input)
+		if (input->sink == sink->base.index)
+			func(&input->base, user_data);
+}
+
+static void
 sink_info_cb(pa_context *c, const pa_sink_info *i,
 	     gint is_last, gpointer userdata)
 {
@@ -95,13 +106,14 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 
 	el = g_list_find_custom(ctx->sink_list, &i->index, compare_idx_pntr);
 	if (el == NULL) {
-		sink = g_new(struct sink_info, 1);
+		sink = g_new0(struct sink_info, 1);
 		if (sink == NULL)
 			return;
 		sink->base.index = i->index;
-		sink->base.indent = 0;
 		sink->base.mute_set = pa_context_set_sink_mute_by_index;
 		sink->base.volume_set = pa_context_set_sink_volume_by_index;
+		sink->base.childs_foreach = sink_childs_foreach;
+		sink->ctx = ctx;
 
 		sink->priority = get_sink_priority(ctx, i);
 		ctx->sink_list = g_list_insert_sorted(ctx->sink_list, sink,
@@ -143,11 +155,12 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 
 	el = g_list_find_custom(ctx->input_list, &i->index, compare_idx_pntr);
 	if (el == NULL) {
-		sink_input = g_new(struct sink_input_info, 1);
+		sink_input = g_new0(struct sink_input_info, 1);
 		if (sink_input == NULL)
 			return;
 		sink_input->base.index = i->index;
 		sink_input->base.indent = 1;
+		sink_input->base.hide_index = TRUE;
 		sink_input->base.mute_set = pa_context_set_sink_input_mute;
 		sink_input->base.volume_set = pa_context_set_sink_input_volume;
 		ctx->input_list = g_list_append(ctx->input_list, sink_input);

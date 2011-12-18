@@ -33,17 +33,21 @@ struct vol_ctl {
 
 	gchar *name; /* displayed name */
 	gint indent; /* indentation when displayed */
+	gboolean hide_index;
 
 	pa_operation *(*mute_set)(pa_context *, guint32, int,
 				  pa_context_success_cb_t, void *);
 
 	pa_operation *(*volume_set)(pa_context *, guint32, const pa_cvolume *,
 				    pa_context_success_cb_t, gpointer);
+
+	void (*childs_foreach)(struct vol_ctl *ctx, GFunc func, gpointer udata);
 };
 
 struct sink_info {
 	struct vol_ctl base;
 	gint priority;
+	struct context *ctx;
 };
 
 struct sink_input_info {

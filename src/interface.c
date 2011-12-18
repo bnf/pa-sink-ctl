@@ -111,7 +111,7 @@ interface_resize(gpointer data)
 }
 
 static void
-print_volume(struct context *ctx, struct vol_ctl *ctl, int y)
+print_volume(struct context *ctx, struct vol_ctl *ctl)
 {
 	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
 		1 /* space */ + ctx->max_name_len;
@@ -120,103 +120,70 @@ print_volume(struct context *ctx, struct vol_ctl *ctl, int y)
 	int volume_bar_len = getmaxx(ctx->menu_win) - x - 7;
 	gint vol = (gint) (volume_bar_len * ctl->vol / PA_VOLUME_NORM);
 
-	mvwprintw(ctx->menu_win, y, x - 1, " [%c]", ctl->mute ? 'M' : ' ');
+	mvwprintw(ctx->menu_win, ctx->y, x - 1, " [%c]", ctl->mute ? 'M' : ' ');
 	x += 4;
 
-	mvwprintw(ctx->menu_win, y, x - 1 , "[");
+	mvwprintw(ctx->menu_win, ctx->y, x - 1 , "[");
 	for (gint i = 0; i < vol; ++i)
-		mvwprintw(ctx->menu_win, y, x + i, "=");
+		mvwprintw(ctx->menu_win, ctx->y, x + i, "=");
 	for (gint i = vol; i < volume_bar_len; ++i)
-		mvwprintw(ctx->menu_win, y, x + i, " ");
-	mvwprintw(ctx->menu_win, y, x + volume_bar_len, "]");
+		mvwprintw(ctx->menu_win, ctx->y, x + i, " ");
+	mvwprintw(ctx->menu_win, ctx->y, x + volume_bar_len, "]");
 }
 
 static void
-print_input_list(struct context *ctx, struct sink_info *sink,
-		 gint sink_num, gint *poffset)
+print_vol_ctl(gpointer data, gpointer user_data)
 {
-	struct sink_input_info *input;
-	gint offset = *poffset;
-	gboolean selected;
-	gint i = -1;
+	struct vol_ctl *ctl = data;
+	struct context *ctx = user_data;
+	gint x = 2;
+	gboolean selected = (ctl == interface_get_current_ctl(ctx, NULL));
 
-	list_foreach(ctx->input_list, input) {
-		if (input->sink != sink->base.index)
-			continue;
-		selected = (ctx->chooser_sink == sink_num &&
-			    ctx->chooser_input == ++i);
-
-		if (selected)
-			wattron(ctx->menu_win, A_REVERSE);
-
-		mvwprintw(ctx->menu_win, offset, 2, "%*s%-*s",
-			  2+1+input->base.indent, "", /* space for index number */
-			  ctx->max_name_len - input->base.indent,
-			  input->base.name);
-
-		if (selected)
-			wattroff(ctx->menu_win, A_REVERSE);
-
-		print_volume(ctx, &input->base, offset);
-		offset++;
+	if (selected)
+		wattron(ctx->menu_win, A_REVERSE);
+	if (!ctl->hide_index) {
+		mvwprintw(ctx->menu_win, ctx->y, x, "%2u ", ctl->index);
+		x += 3;
 	}
-	*poffset = offset;
+	mvwprintw(ctx->menu_win, ctx->y, x, "%*s%-*s",
+		  ctl->indent + (ctl->hide_index ? 2+1 : 0), "",
+		  ctx->max_name_len - ctl->indent, ctl->name);
+	if (selected)
+		wattroff(ctx->menu_win, A_REVERSE);
+	print_volume(ctx, ctl);
+	ctx->y++;
+
+	if (ctl->childs_foreach)
+		ctl->childs_foreach(ctl, print_vol_ctl, ctx);
 }
 
-static inline void
-max_name_len_helper(GList *list, guint *max_len)
+static void
+max_name_len_helper(gpointer data, gpointer user_data)
 {
-	struct vol_ctl *ctl;
+	struct vol_ctl *ctl = data;
+	struct context *ctx = user_data;
 	guint len;
 
-	list_foreach(list, ctl) {
-		len = ctl->indent + strlen(ctl->name);
+	len = ctl->indent + strlen(ctl->name);
+	if (len > ctx->max_name_len)
+		ctx->max_name_len = len;
 
-		if (len > *max_len)
-			*max_len= len;
-	}
-}
-
-/* looking for the longest name length of all SINK's and INPUT's */
-static void
-set_max_name_len(struct context *ctx)
-{
-	ctx->max_name_len = 0;
-	max_name_len_helper(ctx->sink_list, &ctx->max_name_len);
-	max_name_len_helper(ctx->input_list, &ctx->max_name_len);
+	if (ctl->childs_foreach)
+		ctl->childs_foreach(ctl, max_name_len_helper, ctx);
 }
 
 void
 interface_redraw(struct context *ctx)
 {
-	struct sink_info *sink;
-	gint i = -1;
-	gint x = 2;
-	gint offset = 2; /* top border + 1 empty line */
-
-	/* looking for the longest name for right indentation */
-	set_max_name_len(ctx);
-
 	werase(ctx->menu_win);
 	box(ctx->menu_win, 0, 0);
 
-	list_foreach(ctx->sink_list, sink) {
-		gboolean selected = (++i == ctx->chooser_sink &&
-				     ctx->chooser_input == SELECTED_SINK);
+	ctx->y = 2; /* top border + 1 empty line */
+	ctx->max_name_len = 0;
 
-		if (selected)
-			wattron(ctx->menu_win, A_REVERSE);
+	g_list_foreach(ctx->sink_list, max_name_len_helper, ctx);
+	g_list_foreach(ctx->sink_list, print_vol_ctl, ctx);
 
-		mvwprintw(ctx->menu_win, offset, x, "%2u %-*s",
-			  sink->base.index, ctx->max_name_len, sink->base.name);
-
-		if (selected)
-			wattroff(ctx->menu_win, A_REVERSE);
-		print_volume(ctx, &sink->base, offset);
-
-		offset++;
-		print_input_list(ctx, sink, i, &offset);
-	}
 	wrefresh(ctx->menu_win);
 }
 
