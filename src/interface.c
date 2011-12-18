@@ -38,6 +38,50 @@
 #include "unix_signal.h"
 #endif
 
+static struct sink_input_info *
+sink_get_nth_input(struct context *ctx, struct sink_info *sink, int n)
+{
+	struct sink_input_info *input;
+	int i = 0;
+
+	list_foreach(ctx->input_list, input) {
+		if (input->sink != sink->base.index)
+			continue;
+		if (i++ == n)
+			return input;
+	}
+
+	return NULL;
+}
+
+struct vol_ctl *
+interface_get_current_ctl(struct context *ctx, struct vol_ctl **parent)
+{
+	struct sink_info *sink;
+	struct sink_input_info *input;
+
+	if (parent)
+		*parent = NULL;
+
+	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+	if (sink == NULL)
+		return NULL;
+
+	if (ctx->chooser_input == SELECTED_SINK)
+		return &sink->base;
+	else if (ctx->chooser_input >= 0) {
+		input = sink_get_nth_input(ctx, sink, ctx->chooser_input);
+		if (input == NULL)
+			return NULL;
+		if (parent)
+			*parent = &sink->base;
+		return &input->base;
+	}
+
+	g_assert(0);
+	return NULL;
+}
+
 static gboolean
 interface_resize(gpointer data)
 {

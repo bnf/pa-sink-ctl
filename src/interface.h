@@ -28,6 +28,9 @@
 
 struct context;
 
+struct vol_ctl *
+interface_get_current_ctl(struct context *ctx, struct vol_ctl **parent);
+
 void
 interface_redraw(struct context *ctx);
 
