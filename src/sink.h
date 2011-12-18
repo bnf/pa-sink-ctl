@@ -32,6 +32,9 @@ struct vol_ctl_object {
 	guint8 channels;
 
 	gchar *name; /* displayed name */
+
+	pa_operation *(*mute_set)(pa_context *, guint32, int,
+				  pa_context_success_cb_t, void *);
 };
 
 struct sink_info {

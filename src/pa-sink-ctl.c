@@ -99,6 +99,8 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		if (sink == NULL)
 			return;
 		sink->base.index = i->index;
+		sink->base.mute_set = pa_context_set_sink_mute_by_index;
+
 		sink->priority = get_sink_priority(ctx, i);
 		ctx->sink_list = g_list_insert_sorted(ctx->sink_list, sink,
 						      compare_sink_priority);
@@ -143,6 +145,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		if (sink_input == NULL)
 			return;
 		sink_input->base.index = i->index;
+		sink_input->base.mute_set = pa_context_set_sink_input_mute;
 		ctx->input_list = g_list_append(ctx->input_list, sink_input);
 	} else {
 		sink_input = el->data;

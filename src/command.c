@@ -151,36 +151,34 @@ volume_up(struct context *ctx, int key)
 	volume_change(ctx, TRUE);
 }
 
-static void
-do_mute(struct context *ctx, int key)
+static struct vol_ctl_object *
+interface_get_current_ctl(struct context *ctx)
 {
 	struct sink_info *sink;
 	struct sink_input_info *input;
-	guint32 index;
-	gint mute;
-	pa_operation* (*mute_set) (pa_context*, guint32, int,
-				   pa_context_success_cb_t, void*);
+
+	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+	if (ctx->chooser_input == SELECTED_SINK)
+		return &sink->base;
+
+	input = sink_get_nth_input(ctx, sink, ctx->chooser_input);
+
+	return &input->base;
+}
+
+static void
+do_mute(struct context *ctx, int key)
+{
+	struct vol_ctl_object *ctl;
+	pa_operation *o;
 
 	if (!ctx->context_ready)
 		return;
 
-	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+	ctl = interface_get_current_ctl(ctx);
 
-	if (ctx->chooser_input >= 0) {
-		input    = sink_get_nth_input(ctx, sink, ctx->chooser_input);
-		index    = input->base.index;
-		mute     = !input->base.mute;
-		mute_set = pa_context_set_sink_input_mute;
-	} else if (ctx->chooser_input == SELECTED_SINK) {
-		index    = sink->base.index;
-		mute     = !sink->base.mute;
-		mute_set = pa_context_set_sink_mute_by_index;
-	} else {
-		g_assert(0);
-		return;
-	}
-
-	pa_operation_unref(mute_set(ctx->context, index, mute, NULL, NULL));
+	o = ctl->mute_set(ctx->context, ctl->index, !ctl->mute, NULL, NULL);
+	pa_operation_unref(o);
 }
 
 static void
