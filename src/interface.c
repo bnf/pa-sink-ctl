@@ -82,34 +82,6 @@ interface_get_current_ctl(struct context *ctx, struct vol_ctl **parent)
 	return NULL;
 }
 
-static gboolean
-interface_resize(gpointer data)
-{
-	struct context *ctx = data;
-	struct winsize wsize;
-	gint height = 80;
-	gint width  = 24;
-
-	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize) >= 0) {
-		height = wsize.ws_row;
-		width  = wsize.ws_col;
-	}
-
-	resize_term(height, width);
-	clear();
-	refresh();
-
-	wresize(ctx->menu_win, height - H_MSG_BOX, width);
-	wresize(ctx->msg_win, H_MSG_BOX, width);
-	mvwin(ctx->msg_win, height - H_MSG_BOX, 0);
-
-	/* NULL := display old status */
-	interface_set_status(ctx, NULL); 
-	interface_redraw(ctx);
-
-	return TRUE;
-}
-
 static void
 allocate_volume_bar(struct context *ctx)
 {
@@ -216,24 +188,6 @@ interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 void
-interface_clear(struct context *ctx)
-{
-	g_source_remove(ctx->resize_source_id);
-	g_source_remove(ctx->input_source_id);
-#ifdef HAVE_SIGNALFD
-	close(ctx->signal_fd);
-#endif
-	clear();
-	refresh();
-	delwin(ctx->menu_win);
-	delwin(ctx->msg_win);
-	endwin();
-	delscreen(NULL);
-	if (ctx->status)
-		g_free(ctx->status);
-}
-
-void
 interface_set_status(struct context *ctx, const gchar *msg, ...)
 {
 	va_list ap;
@@ -250,6 +204,34 @@ interface_set_status(struct context *ctx, const gchar *msg, ...)
 		mvwprintw(ctx->msg_win, 1, 1, ctx->status);
 	wrefresh(ctx->msg_win);
 	refresh();
+}
+
+static gboolean
+interface_resize(gpointer data)
+{
+	struct context *ctx = data;
+	struct winsize wsize;
+	gint height = 80;
+	gint width  = 24;
+
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize) >= 0) {
+		height = wsize.ws_row;
+		width  = wsize.ws_col;
+	}
+
+	resize_term(height, width);
+	clear();
+	refresh();
+
+	wresize(ctx->menu_win, height - H_MSG_BOX, width);
+	wresize(ctx->msg_win, H_MSG_BOX, width);
+	mvwin(ctx->msg_win, height - H_MSG_BOX, 0);
+
+	/* NULL := display old status */
+	interface_set_status(ctx, NULL); 
+	interface_redraw(ctx);
+
+	return TRUE;
 }
 
 #ifdef HAVE_SIGNALFD
@@ -330,4 +312,22 @@ interface_init(struct context *ctx)
 	refresh();
 
 	return 0;
+}
+
+void
+interface_clear(struct context *ctx)
+{
+	g_source_remove(ctx->resize_source_id);
+	g_source_remove(ctx->input_source_id);
+#ifdef HAVE_SIGNALFD
+	close(ctx->signal_fd);
+#endif
+	clear();
+	refresh();
+	delwin(ctx->menu_win);
+	delwin(ctx->msg_win);
+	endwin();
+	delscreen(NULL);
+	if (ctx->status)
+		g_free(ctx->status);
 }
