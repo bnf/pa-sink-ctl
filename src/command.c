@@ -79,9 +79,9 @@ static void
 volume_change(struct context *ctx, gboolean volume_increment)
 {
 	struct vol_ctl *ctl;
-	pa_operation *o;
 	pa_cvolume volume;
-	pa_volume_t inc;
+	const pa_volume_t inc = 2 * PA_VOLUME_NORM / 100;
+	pa_operation *o;
 
 	if (!ctx->context_ready)
 		return;
@@ -90,9 +90,8 @@ volume_change(struct context *ctx, gboolean volume_increment)
 	if (!ctl)
 		return;
 
-	volume = (pa_cvolume) { .channels = ctl->channels };
+	volume.channels = ctl->channels;
 	pa_cvolume_set(&volume, volume.channels, ctl->vol);
-	inc = 2 * PA_VOLUME_NORM / 100;
 
 	if (volume_increment)
 		if (PA_VOLUME_NORM > ctl->vol &&
