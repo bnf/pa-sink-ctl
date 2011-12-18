@@ -38,10 +38,10 @@
 #include "unix_signal.h"
 #endif
 
-static struct sink_input_info *
-sink_get_nth_input(struct context *ctx, struct sink_info *sink, int n)
+static struct sink_input *
+sink_get_nth_input(struct context *ctx, struct sink *sink, int n)
 {
-	struct sink_input_info *input;
+	struct sink_input *input;
 	int i = 0;
 
 	list_foreach(ctx->input_list, input) {
@@ -58,8 +58,8 @@ struct vol_ctl *
 interface_get_current_ctl(struct interface *ifc, struct vol_ctl **parent)
 {
 	struct context *ctx = container_of(ifc, struct context, interface);
-	struct sink_info *sink;
-	struct sink_input_info *input;
+	struct sink *sink;
+	struct sink_input *input;
 
 	if (parent)
 		*parent = NULL;

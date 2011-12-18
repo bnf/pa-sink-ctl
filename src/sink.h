@@ -44,13 +44,13 @@ struct vol_ctl {
 	void (*childs_foreach)(struct vol_ctl *ctx, GFunc func, gpointer udata);
 };
 
-struct sink_info {
+struct sink {
 	struct vol_ctl base;
 	gint priority;
 	struct context *ctx;
 };
 
-struct sink_input_info {
+struct sink_input {
 	struct vol_ctl base;
 	guint32 sink;
 };

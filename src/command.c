@@ -25,9 +25,9 @@
 #include "command.h"
 
 static int
-sink_input_len(struct context *ctx, struct sink_info *sink)
+sink_input_len(struct context *ctx, struct sink *sink)
 {
-	struct sink_input_info *input;
+	struct sink_input *input;
 	int len = 0;
 
 	list_foreach(ctx->input_list, input)
@@ -41,7 +41,7 @@ static void
 up(struct context *ctx, int key)
 {
 	struct interface *ifc = &ctx->interface;
-	struct sink_info *sink = NULL;
+	struct sink *sink = NULL;
 
 	if (!ctx->context_ready)
 		return;
@@ -61,7 +61,7 @@ static void
 down(struct context *ctx, int key)
 {
 	struct interface *ifc = &ctx->interface;
-	struct sink_info *sink;
+	struct sink *sink;
 
 	if (!ctx->context_ready)
 		return;
@@ -143,7 +143,7 @@ static void
 switch_sink(struct context *ctx, int key)
 {
 	struct interface *ifc = &ctx->interface;
-	struct sink_input_info *t;
+	struct sink_input *t;
 	struct vol_ctl *input, *sink;
 	pa_operation *o;
 	gint i;

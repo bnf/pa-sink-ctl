@@ -64,8 +64,8 @@ get_sink_name(struct context *ctx, const pa_sink_info *sink)
 static gint
 compare_sink_priority(gconstpointer new_data, gconstpointer el_data)
 {
-	const struct sink_info *new = new_data;
-	const struct sink_info *el = el_data;
+	const struct sink *new = new_data;
+	const struct sink *el = el_data;
 
 	/* Add 1 to append at end of sinks if priority equals */
 	return el->priority - new->priority + 1;
@@ -74,8 +74,8 @@ compare_sink_priority(gconstpointer new_data, gconstpointer el_data)
 static void
 sink_childs_foreach(struct vol_ctl *ctl, GFunc func, gpointer user_data)
 {
-	struct sink_info *sink = (struct sink_info *) ctl;
-	struct sink_input_info *input;
+	struct sink *sink = (struct sink *) ctl;
+	struct sink_input *input;
 
 	list_foreach(sink->ctx->input_list, input)
 		if (input->sink == sink->base.index)
@@ -87,7 +87,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 	     gint is_last, gpointer userdata)
 {
 	struct context *ctx = userdata;
-	struct sink_info *sink;
+	struct sink *sink;
 	GList *el;
 
 	if (is_last < 0) {
@@ -106,7 +106,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 
 	el = g_list_find_custom(ctx->sink_list, &i->index, compare_idx_pntr);
 	if (el == NULL) {
-		sink = g_new0(struct sink_info, 1);
+		sink = g_new0(struct sink, 1);
 		if (sink == NULL)
 			return;
 		sink->base.index = i->index;
@@ -134,7 +134,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		   gint is_last, gpointer userdata)
 {
 	struct context *ctx = userdata;
-	struct sink_input_info *sink_input;
+	struct sink_input *sink_input;
 	GList *el;
 
 	if (is_last < 0) {
@@ -155,7 +155,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 
 	el = g_list_find_custom(ctx->input_list, &i->index, compare_idx_pntr);
 	if (el == NULL) {
-		sink_input = g_new0(struct sink_input_info, 1);
+		sink_input = g_new0(struct sink_input, 1);
 		if (sink_input == NULL)
 			return;
 		sink_input->base.index = i->index;
