@@ -33,6 +33,8 @@ struct context {
 
 	WINDOW *menu_win;
 	WINDOW *msg_win;
+	gint volume_bar_len;
+	gchar *volume_bar;
 
 	guint resize_source_id;
 #ifdef HAVE_SIGNALFD

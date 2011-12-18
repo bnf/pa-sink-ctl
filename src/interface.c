@@ -111,24 +111,31 @@ interface_resize(gpointer data)
 }
 
 static void
-print_volume(struct context *ctx, struct vol_ctl *ctl)
+allocate_volume_bar(struct context *ctx)
 {
-	gint x, y, max_x, max_y, volume_bar_len, vol;
+	gint x, y, max_x, max_y;
+
+	if (ctx->volume_bar)
+		return;
 
 	getyx(ctx->menu_win, y, x);
 	getmaxyx(ctx->menu_win, max_y, max_x);
-	/* mute button + brackets + space */
-	volume_bar_len = max_x - x - 8;
-	vol = (gint) (volume_bar_len * ctl->vol / PA_VOLUME_NORM);
+	ctx->volume_bar_len = max_x - x - 8;
+	ctx->volume_bar = g_new(char, ctx->volume_bar_len+1);
+	/* FIXME: if (ctx->volume_bar == NULL) */
+	memset(ctx->volume_bar, '=', ctx->volume_bar_len);
+	ctx->volume_bar[ctx->volume_bar_len] = '\0';
+}
 
-	wprintw(ctx->menu_win, " [%c]", ctl->mute ? 'M' : ' ');
+static void
+print_volume(struct context *ctx, struct vol_ctl *ctl)
+{
+	gint vol;
 
-	wprintw(ctx->menu_win, "[");
-	for (gint i = 0; i < vol; ++i)
-		wprintw(ctx->menu_win, "=");
-	for (gint i = vol; i < volume_bar_len; ++i)
-		wprintw(ctx->menu_win, " ");
-	wprintw(ctx->menu_win, "]");
+	allocate_volume_bar(ctx);
+	vol = (gint) (ctx->volume_bar_len * ctl->vol / PA_VOLUME_NORM);
+	wprintw(ctx->menu_win, " [%c][%-*.*s]",
+		ctl->mute ? 'M':' ', ctx->volume_bar_len, vol, ctx->volume_bar);
 }
 
 static void
@@ -181,6 +188,10 @@ interface_redraw(struct context *ctx)
 
 	wmove(ctx->menu_win, 2, 2); /* set initial cursor offset */
 	ctx->max_name_len = 0;
+	if (ctx->volume_bar) {
+		g_free(ctx->volume_bar);
+		ctx->volume_bar = NULL;
+	}
 
 	g_list_foreach(ctx->sink_list, max_name_len_helper, ctx);
 	g_list_foreach(ctx->sink_list, print_vol_ctl, ctx);
