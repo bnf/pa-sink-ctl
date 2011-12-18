@@ -35,6 +35,9 @@ struct vol_ctl_object {
 
 	pa_operation *(*mute_set)(pa_context *, guint32, int,
 				  pa_context_success_cb_t, void *);
+
+	pa_operation *(*volume_set)(pa_context *, guint32, const pa_cvolume *,
+				    pa_context_success_cb_t, gpointer);
 };
 
 struct sink_info {

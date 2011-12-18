@@ -91,43 +91,51 @@ down(struct context *ctx, int key)
 	interface_redraw(ctx);
 }
 
-static void
-volume_change(struct context *ctx, gboolean volume_increment)
+static struct vol_ctl_object *
+interface_get_current_ctl(struct context *ctx)
 {
 	struct sink_info *sink;
 	struct sink_input_info *input;
-	guint32 index;
+
+	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+	if (sink == NULL)
+		return NULL;
+
+	if (ctx->chooser_input == SELECTED_SINK)
+		return &sink->base;
+	else if (ctx->chooser_input >= 0) {
+		input = sink_get_nth_input(ctx, sink, ctx->chooser_input);
+		if (input == NULL)
+			return NULL;
+		return &input->base;
+	}
+
+	g_assert(0);
+	return NULL;
+}
+
+static void
+volume_change(struct context *ctx, gboolean volume_increment)
+{
+	struct vol_ctl_object *ctl;
+	pa_operation *o;
 	pa_cvolume volume;
-	pa_volume_t tmp_vol, inc;
-	pa_operation* (*volume_set) (pa_context*, guint32, const pa_cvolume *,
-				     pa_context_success_cb_t, gpointer);
+	pa_volume_t inc;
 
 	if (!ctx->context_ready)
 		return;
 
-	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-	if (ctx->chooser_input >= 0) {
-		input      = sink_get_nth_input(ctx, sink, ctx->chooser_input);
-		index      = input->base.index;
-		volume     = (pa_cvolume) { .channels = input->base.channels };
-		tmp_vol    = input->base.vol; 
-		volume_set = pa_context_set_sink_input_volume;
-	} else if (ctx->chooser_input == SELECTED_SINK) {
-		index      = sink->base.index;
-		volume     = (pa_cvolume) { .channels = sink->base.channels };
-		tmp_vol    = sink->base.vol;
-		volume_set = pa_context_set_sink_volume_by_index;
-	} else {
-		g_assert(0);
+	ctl = interface_get_current_ctl(ctx);
+	if (!ctl)
 		return;
-	}
 
-	pa_cvolume_set(&volume, volume.channels, tmp_vol);
+	volume = (pa_cvolume) { .channels = ctl->channels };
+	pa_cvolume_set(&volume, volume.channels, ctl->vol);
 	inc = 2 * PA_VOLUME_NORM / 100;
 
 	if (volume_increment)
-		if (PA_VOLUME_NORM > tmp_vol &&
-		    PA_VOLUME_NORM - tmp_vol > inc)
+		if (PA_VOLUME_NORM > ctl->vol &&
+		    PA_VOLUME_NORM - ctl->vol > inc)
 			pa_cvolume_inc(&volume, inc);
 		else
 			pa_cvolume_set(&volume, volume.channels,
@@ -136,7 +144,8 @@ volume_change(struct context *ctx, gboolean volume_increment)
 		pa_cvolume_dec(&volume, inc);
 
 
-	pa_operation_unref(volume_set(ctx->context, index, &volume, NULL,NULL));
+	o = ctl->volume_set(ctx->context, ctl->index, &volume, NULL,NULL);
+	pa_operation_unref(o);
 }
 
 static void
@@ -151,21 +160,6 @@ volume_up(struct context *ctx, int key)
 	volume_change(ctx, TRUE);
 }
 
-static struct vol_ctl_object *
-interface_get_current_ctl(struct context *ctx)
-{
-	struct sink_info *sink;
-	struct sink_input_info *input;
-
-	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-	if (ctx->chooser_input == SELECTED_SINK)
-		return &sink->base;
-
-	input = sink_get_nth_input(ctx, sink, ctx->chooser_input);
-
-	return &input->base;
-}
-
 static void
 do_mute(struct context *ctx, int key)
 {
@@ -176,6 +170,8 @@ do_mute(struct context *ctx, int key)
 		return;
 
 	ctl = interface_get_current_ctl(ctx);
+	if (!ctl)
+		return;
 
 	o = ctl->mute_set(ctx->context, ctl->index, !ctl->mute, NULL, NULL);
 	pa_operation_unref(o);
