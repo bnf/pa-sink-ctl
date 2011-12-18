@@ -111,16 +111,16 @@ interface_resize(gpointer data)
 }
 
 static void
-print_volume(struct context *ctx, pa_volume_t volume, int mute, int y)
+print_volume(struct context *ctx, struct vol_ctl *ctl, int y)
 {
 	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
 		1 /* space */ + ctx->max_name_len + 1 /* space */;
 
 	/* mute button + brackets + space */
 	int volume_bar_len = getmaxx(ctx->menu_win) - x - 6;
-	gint vol = (gint) (volume_bar_len * volume / PA_VOLUME_NORM);
+	gint vol = (gint) (volume_bar_len * ctl->vol / PA_VOLUME_NORM);
 
-	mvwprintw(ctx->menu_win, y, x - 1, "[%c]", mute ? 'M' : ' ');
+	mvwprintw(ctx->menu_win, y, x - 1, "[%c]", ctl->mute ? 'M' : ' ');
 	x += 3;
 
 	mvwprintw(ctx->menu_win, y, x - 1 , "[");
@@ -157,7 +157,7 @@ print_input_list(struct context *ctx, struct sink_info *sink,
 		if (selected)
 			wattroff(ctx->menu_win, A_REVERSE);
 
-		print_volume(ctx, input->base.vol, input->base.mute, offset);
+		print_volume(ctx, &input->base, offset);
 		offset++;
 	}
 	*poffset = offset;
@@ -212,7 +212,7 @@ interface_redraw(struct context *ctx)
 
 		if (selected)
 			wattroff(ctx->menu_win, A_REVERSE);
-		print_volume(ctx, sink->base.vol, sink->base.mute, offset);
+		print_volume(ctx, &sink->base, offset);
 
 		offset++;
 		print_input_list(ctx, sink, i, &offset);
