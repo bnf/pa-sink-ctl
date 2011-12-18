@@ -22,38 +22,22 @@
 
 #include <glib.h>
 #include <pulse/pulseaudio.h>
-#include <ncurses.h>
+#include <stddef.h>
 
 #include "config.h"
+#include "interface.h"
 
 struct context {
 	pa_context *context;
 	pa_operation *op;
 	gboolean context_ready;
 
-	WINDOW *menu_win;
-	WINDOW *msg_win;
-	gint volume_bar_len;
-	gchar *volume_bar;
-
-	guint resize_source_id;
-#ifdef HAVE_SIGNALFD
-	int signal_fd;
-#endif
-	guint input_source_id;
-
-	gint chooser_sink;
-	gint chooser_input;
-
-	guint max_name_len;
-
 	GMainLoop *loop;
 
 	GList *sink_list;
 	GList *input_list;
 
-	gchar *status;
-
+	struct interface interface;
 	struct config config;
 	int return_value;
 };
@@ -69,5 +53,9 @@ quit(struct context *ctx);
 
 #define list_foreach(list, el) \
 	for (GList *__l = (list); __l && ((el) = __l->data); __l = __l->next)
+
+#define container_of(ptr, type, member) \
+	(type *)(((char *) ((const __typeof__( ((type *)0)->member ) *)(ptr))) \
+		 - offsetof(type,member) )
 
 #endif

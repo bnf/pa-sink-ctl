@@ -22,25 +22,44 @@
 
 #include <glib.h>
 #include <pulse/pulseaudio.h>
+#include <ncurses.h>
 
 #define SELECTED_SINK -1
 #define H_MSG_BOX 3
 
-struct context;
+struct interface {
+	WINDOW *menu_win;
+	WINDOW *msg_win;
+	gint volume_bar_len;
+	gchar *volume_bar;
+
+	guint resize_source_id;
+#ifdef HAVE_SIGNALFD
+	int signal_fd;
+#endif
+	guint input_source_id;
+
+	gint chooser_sink;
+	gint chooser_input;
+
+	guint max_name_len;
+
+	gchar *status;
+};
 
 struct vol_ctl *
-interface_get_current_ctl(struct context *ctx, struct vol_ctl **parent);
+interface_get_current_ctl(struct interface *ifc, struct vol_ctl **parent);
 
 void
-interface_redraw(struct context *ctx);
+interface_redraw(struct interface *ifc);
 
 int
-interface_init(struct context *ctx);
+interface_init(struct interface *ifc);
 
 void
-interface_clear(struct context *ctx);
+interface_clear(struct interface *ifc);
 
 void 
-interface_set_status(struct context *ctx, const gchar *, ...);
+interface_set_status(struct interface *ifc, const gchar *, ...);
 
 #endif

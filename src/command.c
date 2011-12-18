@@ -40,39 +40,41 @@ sink_input_len(struct context *ctx, struct sink_info *sink)
 static void
 up(struct context *ctx, int key)
 {
+	struct interface *ifc = &ctx->interface;
 	struct sink_info *sink = NULL;
 
 	if (!ctx->context_ready)
 		return;
 
-	if (ctx->chooser_input == SELECTED_SINK &&
-	    ctx->chooser_sink > 0) {
-		sink = g_list_nth_data(ctx->sink_list, --ctx->chooser_sink);
+	if (ifc->chooser_input == SELECTED_SINK &&
+	    ifc->chooser_sink > 0) {
+		sink = g_list_nth_data(ctx->sink_list, --ifc->chooser_sink);
 		/* autoassigment to SELECTED_SINK (=-1) if length = 0 */
-		ctx->chooser_input = sink_input_len(ctx, sink) - 1;
-	} else if (ctx->chooser_input >= 0)
-		--ctx->chooser_input;
+		ifc->chooser_input = sink_input_len(ctx, sink) - 1;
+	} else if (ifc->chooser_input >= 0)
+		--ifc->chooser_input;
 
-	interface_redraw(ctx);
+	interface_redraw(ifc);
 }
 
 static void
 down(struct context *ctx, int key)
 {
+	struct interface *ifc = &ctx->interface;
 	struct sink_info *sink;
 
 	if (!ctx->context_ready)
 		return;
 
-	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
-	if (ctx->chooser_input == (sink_input_len(ctx, sink) - 1) &&
-	    ctx->chooser_sink < (gint) g_list_length(ctx->sink_list)-1) {
-		++ctx->chooser_sink;
-		ctx->chooser_input = SELECTED_SINK;
-	}
-	else if (ctx->chooser_input < (sink_input_len(ctx, sink) - 1))
-		++ctx->chooser_input;
-	interface_redraw(ctx);
+	sink = g_list_nth_data(ctx->sink_list, ifc->chooser_sink);
+	if (ifc->chooser_input == (sink_input_len(ctx, sink) - 1) &&
+	    ifc->chooser_sink < (gint) g_list_length(ctx->sink_list)-1) {
+		++ifc->chooser_sink;
+		ifc->chooser_input = SELECTED_SINK;
+	} else if (ifc->chooser_input < (sink_input_len(ctx, sink) - 1))
+		++ifc->chooser_input;
+
+	interface_redraw(ifc);
 }
 
 static void
@@ -86,7 +88,7 @@ volume_change(struct context *ctx, gboolean volume_increment)
 	if (!ctx->context_ready)
 		return;
 
-	ctl = interface_get_current_ctl(ctx, NULL);
+	ctl = interface_get_current_ctl(&ctx->interface, NULL);
 	if (!ctl)
 		return;
 
@@ -129,7 +131,7 @@ toggle_mute(struct context *ctx, int key)
 	if (!ctx->context_ready)
 		return;
 
-	ctl = interface_get_current_ctl(ctx, NULL);
+	ctl = interface_get_current_ctl(&ctx->interface, NULL);
 	if (!ctl)
 		return;
 
@@ -140,6 +142,7 @@ toggle_mute(struct context *ctx, int key)
 static void
 switch_sink(struct context *ctx, int key)
 {
+	struct interface *ifc = &ctx->interface;
 	struct sink_input_info *t;
 	struct vol_ctl *input, *sink;
 	pa_operation *o;
@@ -149,19 +152,19 @@ switch_sink(struct context *ctx, int key)
 		return;
 
 
-	input = interface_get_current_ctl(ctx, &sink);
+	input = interface_get_current_ctl(&ctx->interface, &sink);
 	if (!input || !sink)
 		return;
 
 	if (g_list_length(ctx->sink_list) <= 1)
 		return;
 
-	if (ctx->chooser_sink < (gint) g_list_length(ctx->sink_list) - 1)
-		ctx->chooser_sink++;
+	if (ifc->chooser_sink < (gint) g_list_length(ctx->sink_list) - 1)
+		ifc->chooser_sink++;
 	else
-		ctx->chooser_sink = 0;
+		ifc->chooser_sink = 0;
 
-	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
+	sink = g_list_nth_data(ctx->sink_list, ifc->chooser_sink);
 	/* chooser_input needs to be derived from $selected_index */
 	o = pa_context_move_sink_input_by_index(ctx->context,
 						input->index, sink->index,
@@ -169,11 +172,11 @@ switch_sink(struct context *ctx, int key)
 	pa_operation_unref(o);
 
 	/* get new chooser_input, if non, select sink as fallback */
-	ctx->chooser_input = SELECTED_SINK; 
+	ifc->chooser_input = SELECTED_SINK; 
 	i = -1;
 	list_foreach(ctx->input_list, t) {
 		if (t->base.index == input->index) {
-			ctx->chooser_input = ++i;
+			ifc->chooser_input = ++i;
 			break;
 		}
 		if (t->sink == sink->index)

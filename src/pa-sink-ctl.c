@@ -93,14 +93,14 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 	if (is_last < 0) {
 		if (pa_context_errno(c) == PA_ERR_NOENTITY)
 			return;
-		interface_set_status(ctx,
+		interface_set_status(&ctx->interface,
 				     "Failed to get sink information: %s\n",
 				     pa_strerror(pa_context_errno(c)));
 		return;
 	}
 
 	if (is_last) {
-		interface_redraw(ctx);
+		interface_redraw(&ctx->interface);
 		return;
 	}
 
@@ -140,14 +140,14 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 	if (is_last < 0) {
 		if (pa_context_errno(c) == PA_ERR_NOENTITY)
 			return;
-		interface_set_status(ctx,
+		interface_set_status(&ctx->interface,
 				     "Failed to get sink input info: %s\n",
 				     pa_strerror(pa_context_errno(c)));
 		return;
 	}
 
 	if (is_last) {
-		interface_redraw(ctx);
+		interface_redraw(&ctx->interface);
 		return;
 	}
 
@@ -245,7 +245,7 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 		default:
 			return;
 		}
-		interface_redraw(ctx);
+		interface_redraw(&ctx->interface);
 		break;
 	default:
 		break;
@@ -264,13 +264,13 @@ context_state_callback(pa_context *c, gpointer userdata)
 	ctx->context_ready = FALSE;
 	switch (pa_context_get_state(c)) {
 	case PA_CONTEXT_CONNECTING:
-		interface_set_status(ctx, "connecting...");
+		interface_set_status(&ctx->interface, "connecting...");
 		break;
 	case PA_CONTEXT_AUTHORIZING:
-		interface_set_status(ctx, "authorizing...");
+		interface_set_status(&ctx->interface, "authorizing...");
 		break;
 	case PA_CONTEXT_SETTING_NAME:
-		interface_set_status(ctx, "setting name...");
+		interface_set_status(&ctx->interface, "setting name...");
 		break;
 
 	case PA_CONTEXT_READY:
@@ -289,20 +289,21 @@ context_state_callback(pa_context *c, gpointer userdata)
 								 NULL, NULL)));
 		}
 		ctx->context_ready = TRUE;
-		interface_set_status(ctx, "ready to process events.");
+		interface_set_status(&ctx->interface,
+				     "ready to process events.");
 		break;
 	case PA_CONTEXT_FAILED:
-		interface_set_status(ctx, "connection lost!");
+		interface_set_status(&ctx->interface, "connection lost!");
 		break;
 	case PA_CONTEXT_TERMINATED:
 		g_assert(ctx->op != NULL);
 		pa_operation_cancel(ctx->op);
 		pa_operation_unref(ctx->op);
 		ctx->op = NULL;
-		interface_set_status(ctx, "connection terminated.");
+		interface_set_status(&ctx->interface, "connection terminated.");
 		break;
 	default:
-		interface_set_status(ctx, "unknown state");
+		interface_set_status(&ctx->interface, "unknown state");
 		break;
 	}
 }
@@ -325,7 +326,6 @@ main(int argc, char** argv)
 
 	ctx.sink_list = NULL;
 	ctx.input_list = NULL;
-	ctx.max_name_len = 0;
 	ctx.context_ready = FALSE;
 	ctx.return_value = 1;
 
@@ -336,7 +336,7 @@ main(int argc, char** argv)
 	if (config_init(&ctx.config) < 0)
 		goto cleanup_loop;
 
-	if (interface_init(&ctx) < 0)
+	if (interface_init(&ctx.interface) < 0)
 		goto cleanup_config;
 
 	if (!(m = pa_glib_mainloop_new(NULL))) {
@@ -346,7 +346,8 @@ main(int argc, char** argv)
 	mainloop_api = pa_glib_mainloop_get_api(m);
 
 	if (!(ctx.context = pa_context_new(mainloop_api, "pa-sink-ctl"))) {
-		interface_set_status(&ctx, "pa_context_new failed: %s\n",
+		interface_set_status(&ctx.interface,
+				     "pa_context_new failed: %s\n",
 				     pa_strerror(pa_context_errno(ctx.context)));
 	}
 
@@ -355,7 +356,8 @@ main(int argc, char** argv)
 				      context_state_callback, &ctx);
 	if (pa_context_connect(ctx.context, NULL,
 			       PA_CONTEXT_NOAUTOSPAWN, NULL)) {
-		interface_set_status(&ctx, "pa_context_connect failed: %s\n",
+		interface_set_status(&ctx.interface,
+				     "pa_context_connect failed: %s\n",
 				     pa_strerror(pa_context_errno(ctx.context)));
 	}
 
@@ -368,7 +370,7 @@ main(int argc, char** argv)
 	pa_context_unref(ctx.context);
 	pa_glib_mainloop_free(m);
 cleanup_interface:
-	interface_clear(&ctx);
+	interface_clear(&ctx.interface);
 cleanup_config:
 	config_uninit(&ctx.config);
 cleanup_loop:
