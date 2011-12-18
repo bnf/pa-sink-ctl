@@ -98,19 +98,19 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		sink = g_new(struct sink_info, 1);
 		if (sink == NULL)
 			return;
-		sink->index = i->index;
+		sink->base.index = i->index;
 		sink->priority = get_sink_priority(ctx, i);
 		ctx->sink_list = g_list_insert_sorted(ctx->sink_list, sink,
 						      compare_sink_priority);
 	} else {
 		sink = el->data;
-		g_free(sink->name);
+		g_free(sink->base.name);
 	}
 
-	sink->mute     = i->mute;
-	sink->vol      = pa_cvolume_avg(&i->volume);
-	sink->channels = i->volume.channels;
-	sink->name     = get_sink_name(ctx, i);
+	sink->base.mute     = i->mute;
+	sink->base.vol      = pa_cvolume_avg(&i->volume);
+	sink->base.channels = i->volume.channels;
+	sink->base.name     = get_sink_name(ctx, i);
 }
 
 static void
@@ -142,21 +142,21 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		sink_input = g_new(struct sink_input_info, 1);
 		if (sink_input == NULL)
 			return;
-		sink_input->index = i->index;
+		sink_input->base.index = i->index;
 		ctx->input_list = g_list_append(ctx->input_list, sink_input);
 	} else {
 		sink_input = el->data;
-		g_free(sink_input->name);
+		g_free(sink_input->base.name);
 	}
 
 	sink_input->sink = i->sink;
-	sink_input->name =
+	sink_input->base.name =
 		pa_proplist_contains(i->proplist, "application.name") ?
 		g_strdup(pa_proplist_gets(i->proplist, "application.name")) :
 		g_strdup(i->name);
-	sink_input->mute = i->mute;
-	sink_input->channels = i->volume.channels;
-	sink_input->vol = pa_cvolume_avg(&i->volume);
+	sink_input->base.mute = i->mute;
+	sink_input->base.channels = i->volume.channels;
+	sink_input->base.vol = pa_cvolume_avg(&i->volume);
 }
 
 static void
@@ -164,7 +164,7 @@ sink_free(gpointer data)
 {
 	struct sink_info *sink = data;
 
-	g_free(sink->name);
+	g_free(sink->base.name);
 	g_free(sink);
 }
 
@@ -173,7 +173,7 @@ sink_input_free(gpointer data)
 {
 	struct sink_input_info *input = data;
 
-	g_free(input->name);
+	g_free(input->base.name);
 	g_free(input);
 }
 

@@ -23,22 +23,25 @@
 #include <glib.h>
 #include <pulse/pulseaudio.h>
 
-struct sink_info {
+struct context;
+
+struct vol_ctl_object {
 	guint32 index;
-	gchar* name;
+	pa_volume_t vol; // TOTO: exchange with the channel-list
 	gint mute;
 	guint8 channels;
-	pa_volume_t vol;
+
+	gchar *name; /* displayed name */
+};
+
+struct sink_info {
+	struct vol_ctl_object base;
 	gint priority;
 };
 
 struct sink_input_info {
-	guint32 index;
+	struct vol_ctl_object base;
 	guint32 sink;
-	gchar *name;
-	gint mute;
-	guint8 channels;
-	pa_volume_t vol; // TOTO: exchange with the channel-list
 };
 
 #endif

@@ -31,7 +31,7 @@ sink_input_len(struct context *ctx, struct sink_info *sink)
 	int len = 0;
 
 	list_foreach(ctx->input_list, input)
-		if (input->sink == sink->index)
+		if (input->sink == sink->base.index)
 			len++;
 
 	return len;
@@ -44,7 +44,7 @@ sink_get_nth_input(struct context *ctx, struct sink_info *sink, int n)
 	int i = 0;
 
 	list_foreach(ctx->input_list, input) {
-		if (input->sink != sink->index)
+		if (input->sink != sink->base.index)
 			continue;
 		if (i++ == n)
 			return input;
@@ -108,14 +108,14 @@ volume_change(struct context *ctx, gboolean volume_increment)
 	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
 	if (ctx->chooser_input >= 0) {
 		input      = sink_get_nth_input(ctx, sink, ctx->chooser_input);
-		index      = input->index;
-		volume     = (pa_cvolume) { .channels = input->channels };
-		tmp_vol    = input->vol; 
+		index      = input->base.index;
+		volume     = (pa_cvolume) { .channels = input->base.channels };
+		tmp_vol    = input->base.vol; 
 		volume_set = pa_context_set_sink_input_volume;
 	} else if (ctx->chooser_input == SELECTED_SINK) {
-		index      = sink->index;
-		volume     = (pa_cvolume) { .channels = sink->channels };
-		tmp_vol    = sink->vol;
+		index      = sink->base.index;
+		volume     = (pa_cvolume) { .channels = sink->base.channels };
+		tmp_vol    = sink->base.vol;
 		volume_set = pa_context_set_sink_volume_by_index;
 	} else {
 		g_assert(0);
@@ -168,12 +168,12 @@ do_mute(struct context *ctx, int key)
 
 	if (ctx->chooser_input >= 0) {
 		input    = sink_get_nth_input(ctx, sink, ctx->chooser_input);
-		index    = input->index;
-		mute     = !input->mute;
+		index    = input->base.index;
+		mute     = !input->base.mute;
 		mute_set = pa_context_set_sink_input_mute;
 	} else if (ctx->chooser_input == SELECTED_SINK) {
-		index    = sink->index;
-		mute     = !sink->mute;
+		index    = sink->base.index;
+		mute     = !sink->base.mute;
 		mute_set = pa_context_set_sink_mute_by_index;
 	} else {
 		g_assert(0);
@@ -208,7 +208,8 @@ switch_sink(struct context *ctx, int key)
 	sink = g_list_nth_data(ctx->sink_list, ctx->chooser_sink);
 	/* chooser_input needs to be derived from $selected_index */
 	o = pa_context_move_sink_input_by_index(ctx->context,
-						input->index, sink->index,
+						input->base.index,
+						sink->base.index,
 						NULL, NULL);
 	pa_operation_unref(o);
 
@@ -216,11 +217,11 @@ switch_sink(struct context *ctx, int key)
 	ctx->chooser_input = SELECTED_SINK; 
 	i = -1;
 	list_foreach(ctx->input_list, t) {
-		if (t->index == input->index) {
+		if (t->base.index == input->base.index) {
 			ctx->chooser_input = ++i;
 			break;
 		}
-		if (t->sink == sink->index)
+		if (t->sink == sink->base.index)
 			++i;
 	}
 }

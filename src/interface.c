@@ -97,7 +97,7 @@ print_input_list(struct context *ctx, struct sink_info *sink,
 	gint i = -1;
 
 	list_foreach(ctx->input_list, input) {
-		if (input->sink != sink->index)
+		if (input->sink != sink->base.index)
 			continue;
 		selected = (ctx->chooser_sink == sink_num &&
 			    ctx->chooser_input == ++i);
@@ -107,12 +107,12 @@ print_input_list(struct context *ctx, struct sink_info *sink,
 
 		mvwprintw(ctx->menu_win, offset, 2, "%*s%-*s",
 			  2+1+1, "", /* space for index number + indentation*/
-			  ctx->max_name_len - 1, input->name);
+			  ctx->max_name_len - 1, input->base.name);
 
 		if (selected)
 			wattroff(ctx->menu_win, A_REVERSE);
 
-		print_volume(ctx, input->vol, input->mute, offset);
+		print_volume(ctx, input->base.vol, input->base.mute, offset);
 		offset++;
 	}
 	*poffset = offset;
@@ -122,20 +122,19 @@ print_input_list(struct context *ctx, struct sink_info *sink,
 static void
 set_max_name_len(struct context *ctx)
 {
-	struct sink_info *sink;
-	struct sink_input_info *input;
+	struct vol_ctl_object *ctl;
 	guint len = 0;
 	ctx->max_name_len = len;
 
-	list_foreach(ctx->sink_list, sink) {
-		len = strlen(sink->name);
+	list_foreach(ctx->sink_list, ctl) {
+		len = strlen(ctl->name);
 
 		if (len > ctx->max_name_len)
 			ctx->max_name_len = len;
 	}
 
-	list_foreach(ctx->input_list, input) {
-		len = strlen(input->name) + 1 /* indentation */;
+	list_foreach(ctx->input_list, ctl) {
+		len = strlen(ctl->name) + 1 /* indentation */;
 
 		if (len > ctx->max_name_len)
 			ctx->max_name_len = len;
@@ -164,11 +163,11 @@ interface_redraw(struct context *ctx)
 			wattron(ctx->menu_win, A_REVERSE);
 
 		mvwprintw(ctx->menu_win, offset, x, "%2u %-*s",
-			  sink->index, ctx->max_name_len, sink->name);
+			  sink->base.index, ctx->max_name_len, sink->base.name);
 
 		if (selected)
 			wattroff(ctx->menu_win, A_REVERSE);
-		print_volume(ctx, sink->vol, sink->mute, offset);
+		print_volume(ctx, sink->base.vol, sink->base.mute, offset);
 
 		offset++;
 		print_input_list(ctx, sink, i, &offset);
