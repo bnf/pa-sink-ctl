@@ -180,21 +180,26 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 }
 
 static void
-sink_free(gpointer data)
+vol_ctl_free(gpointer data)
 {
-	struct sink_info *sink = data;
+	struct vol_ctl *ctl = data;
 
-	g_free(sink->base.name);
-	g_free(sink);
+	g_free(ctl->name);
+	g_free(ctl);
 }
 
-static void
-sink_input_free(gpointer data)
+static gboolean
+remove_index(struct context *ctx, GList **list, guint32 idx)
 {
-	struct sink_input_info *input = data;
+	GList *el = g_list_find_custom(*list, &idx, compare_idx_pntr);
 
-	g_free(input->base.name);
-	g_free(input);
+	if (el == NULL)
+		return FALSE;
+
+	vol_ctl_free(el->data);
+	*list = g_list_delete_link(*list, el);
+
+	return TRUE;
 }
 
 static void
@@ -203,7 +208,7 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 {
 	struct context *ctx = userdata;
 	pa_operation *op;
-	GList *el;
+	GList **list;
 
 	switch (t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) {
 	case PA_SUBSCRIPTION_EVENT_NEW:
@@ -226,26 +231,16 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 	case PA_SUBSCRIPTION_EVENT_REMOVE:
 		switch (t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) {
 		case PA_SUBSCRIPTION_EVENT_SINK:
-			el = g_list_find_custom(ctx->sink_list, &idx,
-						compare_idx_pntr);
-			if (el == NULL)
-				break;
-			sink_free(el->data);
-			ctx->sink_list = g_list_delete_link(ctx->sink_list, el);
+			list = &ctx->sink_list;
 			break;
 		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
-			el = g_list_find_custom(ctx->input_list, &idx,
-						compare_idx_pntr);
-			if (el == NULL)
-				break;
-			sink_input_free(el->data);
-			ctx->input_list =
-				g_list_delete_link(ctx->input_list, el);
+			list = &ctx->input_list;
 			break;
 		default:
 			return;
 		}
-		interface_redraw(&ctx->interface);
+		if (remove_index(ctx, list, idx))
+			interface_redraw(&ctx->interface);
 		break;
 	default:
 		break;
@@ -364,8 +359,8 @@ main(int argc, char** argv)
 	ctx.return_value = 0;
 	g_main_loop_run(ctx.loop);
 
-	g_list_free_full(ctx.sink_list, sink_free);
-	g_list_free_full(ctx.input_list, sink_input_free);
+	g_list_free_full(ctx.sink_list, vol_ctl_free);
+	g_list_free_full(ctx.input_list, vol_ctl_free);
 
 	pa_context_unref(ctx.context);
 	pa_glib_mainloop_free(m);
