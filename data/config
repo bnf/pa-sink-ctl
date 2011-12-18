@@ -7,7 +7,7 @@ name-properties = device.description; device.product.name
 ## Key starting with a 0 and length > 1 are encoded in octal or hexadecimal,
 ## depending on second character being an 'x'.
 ## See ncurses.h for other presudo-character tokens
-up          = 0403:k;w
+up          = 0403;k;w
 down        = 0402;j;s
 volume-down = 0404;h;a
 volume-up   = 0405;l;d
