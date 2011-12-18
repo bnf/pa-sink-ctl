@@ -32,6 +32,7 @@ struct vol_ctl {
 	guint8 channels;
 
 	gchar *name; /* displayed name */
+	gint indent; /* indentation when displayed */
 
 	pa_operation *(*mute_set)(pa_context *, guint32, int,
 				  pa_context_success_cb_t, void *);

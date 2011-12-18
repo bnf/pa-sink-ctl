@@ -150,8 +150,9 @@ print_input_list(struct context *ctx, struct sink_info *sink,
 			wattron(ctx->menu_win, A_REVERSE);
 
 		mvwprintw(ctx->menu_win, offset, 2, "%*s%-*s",
-			  2+1+1, "", /* space for index number + indentation*/
-			  ctx->max_name_len - 1, input->base.name);
+			  2+1+input->base.indent, "", /* space for index number */
+			  ctx->max_name_len - input->base.indent,
+			  input->base.name);
 
 		if (selected)
 			wattroff(ctx->menu_win, A_REVERSE);
@@ -162,27 +163,27 @@ print_input_list(struct context *ctx, struct sink_info *sink,
 	*poffset = offset;
 }
 
+static inline void
+max_name_len_helper(GList *list, guint *max_len)
+{
+	struct vol_ctl *ctl;
+	guint len;
+
+	list_foreach(list, ctl) {
+		len = ctl->indent + strlen(ctl->name);
+
+		if (len > *max_len)
+			*max_len= len;
+	}
+}
+
 /* looking for the longest name length of all SINK's and INPUT's */
 static void
 set_max_name_len(struct context *ctx)
 {
-	struct vol_ctl *ctl;
-	guint len = 0;
-	ctx->max_name_len = len;
-
-	list_foreach(ctx->sink_list, ctl) {
-		len = strlen(ctl->name);
-
-		if (len > ctx->max_name_len)
-			ctx->max_name_len = len;
-	}
-
-	list_foreach(ctx->input_list, ctl) {
-		len = strlen(ctl->name) + 1 /* indentation */;
-
-		if (len > ctx->max_name_len)
-			ctx->max_name_len = len;
-	}
+	ctx->max_name_len = 0;
+	max_name_len_helper(ctx->sink_list, &ctx->max_name_len);
+	max_name_len_helper(ctx->input_list, &ctx->max_name_len);
 }
 
 void

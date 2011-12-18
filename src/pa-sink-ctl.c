@@ -99,6 +99,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		if (sink == NULL)
 			return;
 		sink->base.index = i->index;
+		sink->base.indent = 0;
 		sink->base.mute_set = pa_context_set_sink_mute_by_index;
 		sink->base.volume_set = pa_context_set_sink_volume_by_index;
 
@@ -146,6 +147,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		if (sink_input == NULL)
 			return;
 		sink_input->base.index = i->index;
+		sink_input->base.indent = 1;
 		sink_input->base.mute_set = pa_context_set_sink_input_mute;
 		sink_input->base.volume_set = pa_context_set_sink_input_volume;
 		ctx->input_list = g_list_append(ctx->input_list, sink_input);
