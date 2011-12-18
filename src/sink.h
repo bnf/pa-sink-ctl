@@ -55,4 +55,10 @@ struct sink_input {
 	guint32 sink;
 };
 
+struct source {
+	struct vol_ctl base;
+	gint priority;
+	struct context *ctx;
+};
+
 #endif

@@ -35,6 +35,7 @@ struct context {
 	GMainLoop *loop;
 
 	GList *sink_list;
+	GList *source_list;
 	GList *input_list;
 
 	struct interface interface;

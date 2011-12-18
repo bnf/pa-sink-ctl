@@ -35,30 +35,29 @@ compare_idx_pntr(gconstpointer i1, gconstpointer i2)
 }
 
 static int
-get_sink_priority(struct context *ctx, const pa_sink_info *sink_info)
+get_priority(struct context *ctx, pa_proplist *props)
 {
 	struct priority *p;
 
 	list_foreach(ctx->config.priorities, p)
-		if (g_strcmp0(pa_proplist_gets(sink_info->proplist, p->match),
-			      p->value) == 0)
+		if (g_strcmp0(pa_proplist_gets(props, p->match), p->value) == 0)
 			return p->priority;
 
 	return 0;
 }
 
 static gchar *
-get_sink_name(struct context *ctx, const pa_sink_info *sink)
+get_name(struct context *ctx, pa_proplist *props, const char * const fallback)
 {
 	struct config *cfg = &ctx->config;
 	int i;
 
 	for (i = 0; cfg->name_props && cfg->name_props[i]; ++i)
-		if (pa_proplist_contains(sink->proplist, cfg->name_props[i]))
-			return g_strdup(pa_proplist_gets(sink->proplist,
+		if (pa_proplist_contains(props, cfg->name_props[i]))
+			return g_strdup(pa_proplist_gets(props,
 							 cfg->name_props[i]));
 
-	return g_strdup(sink->name);
+	return g_strdup(fallback);
 }
 
 static gint
@@ -115,7 +114,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		sink->base.childs_foreach = sink_childs_foreach;
 		sink->ctx = ctx;
 
-		sink->priority = get_sink_priority(ctx, i);
+		sink->priority = get_priority(ctx, i->proplist);
 		ctx->sink_list = g_list_insert_sorted(ctx->sink_list, sink,
 						      compare_sink_priority);
 	} else {
@@ -126,7 +125,55 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 	sink->base.mute     = i->mute;
 	sink->base.vol      = pa_cvolume_avg(&i->volume);
 	sink->base.channels = i->volume.channels;
-	sink->base.name     = get_sink_name(ctx, i);
+	sink->base.name     = get_name(ctx, i->proplist, i->name);
+}
+
+static void
+source_info_cb(pa_context *c, const pa_source_info *i,
+	       gint is_last, gpointer userdata)
+{
+	struct context *ctx = userdata;
+	struct source *source;
+	GList *el;
+
+	if (is_last < 0) {
+		if (pa_context_errno(c) == PA_ERR_NOENTITY)
+			return;
+		interface_set_status(&ctx->interface,
+				     "Failed to get source information: %s\n",
+				     pa_strerror(pa_context_errno(c)));
+		return;
+	}
+
+	if (is_last) {
+		interface_redraw(&ctx->interface);
+		return;
+	}
+
+	el = g_list_find_custom(ctx->source_list, &i->index, compare_idx_pntr);
+	if (el == NULL) {
+		source = g_new0(struct source, 1);
+		if (source == NULL)
+			return;
+		source->base.index = i->index;
+		source->base.mute_set = pa_context_set_source_mute_by_index;
+		source->base.volume_set = pa_context_set_source_volume_by_index;
+		//source->base.childs_foreach = source_childs_foreach;
+		source->ctx = ctx;
+
+		source->priority = get_priority(ctx, i->proplist);
+		ctx->source_list = g_list_insert_sorted(ctx->source_list,
+							source,
+						      /*FIXME*/compare_sink_priority);
+	} else {
+		source = el->data;
+		g_free(source->base.name);
+	}
+
+	source->base.mute     = i->mute;
+	source->base.vol      = pa_cvolume_avg(&i->volume);
+	source->base.channels = i->volume.channels;
+	source->base.name     = get_name(ctx, i->proplist, i->name);
 }
 
 static void
@@ -220,6 +267,12 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 							       ctx);
 			pa_operation_unref(op);
 			break;
+		case PA_SUBSCRIPTION_EVENT_SOURCE:
+			op = pa_context_get_source_info_by_index(c, idx,
+								 source_info_cb,
+								 ctx);
+			pa_operation_unref(op);
+			break;
 		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
 			op = pa_context_get_sink_input_info(c, idx,
 							    sink_input_info_cb,
@@ -232,6 +285,9 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t,
 		switch (t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) {
 		case PA_SUBSCRIPTION_EVENT_SINK:
 			list = &ctx->sink_list;
+			break;
+		case PA_SUBSCRIPTION_EVENT_SOURCE:
+			list = &ctx->source_list;
 			break;
 		case PA_SUBSCRIPTION_EVENT_SINK_INPUT:
 			list = &ctx->input_list;
@@ -271,6 +327,8 @@ context_state_callback(pa_context *c, gpointer userdata)
 	case PA_CONTEXT_READY:
 		op = pa_context_get_sink_info_list(c, sink_info_cb, ctx);
 		pa_operation_unref(op);
+		op = pa_context_get_source_info_list(c, source_info_cb, ctx);
+		pa_operation_unref(op);
 		op = pa_context_get_sink_input_info_list(c, sink_input_info_cb,
 							 ctx);
 		pa_operation_unref(op);
@@ -279,6 +337,7 @@ context_state_callback(pa_context *c, gpointer userdata)
 		{
 			pa_subscription_mask_t mask =
 				PA_SUBSCRIPTION_MASK_SINK |
+				PA_SUBSCRIPTION_MASK_SOURCE |
 				PA_SUBSCRIPTION_MASK_SINK_INPUT;
 			g_assert((ctx->op = pa_context_subscribe(c, mask,
 								 NULL, NULL)));

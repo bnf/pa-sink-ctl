@@ -157,6 +157,7 @@ void
 interface_redraw(struct interface *ifc)
 {
 	struct context *ctx = container_of(ifc, struct context, interface);
+	gint x, y;
 
 	werase(ifc->menu_win);
 	box(ifc->menu_win, 0, 0);
@@ -169,7 +170,14 @@ interface_redraw(struct interface *ifc)
 	}
 
 	g_list_foreach(ctx->sink_list, max_name_len_helper, ifc);
+	g_list_foreach(ctx->source_list, max_name_len_helper, ifc);
+
 	g_list_foreach(ctx->sink_list, print_vol_ctl, ifc);
+	getmaxyx(ifc->menu_win, y, x);
+	whline(ifc->menu_win, 0, x - 4);
+	getyx(ifc->menu_win, y, x);
+	wmove(ifc->menu_win, y + 1, x);
+	g_list_foreach(ctx->source_list, print_vol_ctl, ifc);
 
 	wrefresh(ifc->menu_win);
 }
