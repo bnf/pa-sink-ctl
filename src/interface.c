@@ -114,14 +114,14 @@ static void
 print_volume(struct context *ctx, struct vol_ctl *ctl, int y)
 {
 	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
-		1 /* space */ + ctx->max_name_len + 1 /* space */;
+		1 /* space */ + ctx->max_name_len;
 
 	/* mute button + brackets + space */
-	int volume_bar_len = getmaxx(ctx->menu_win) - x - 6;
+	int volume_bar_len = getmaxx(ctx->menu_win) - x - 7;
 	gint vol = (gint) (volume_bar_len * ctl->vol / PA_VOLUME_NORM);
 
-	mvwprintw(ctx->menu_win, y, x - 1, "[%c]", ctl->mute ? 'M' : ' ');
-	x += 3;
+	mvwprintw(ctx->menu_win, y, x - 1, " [%c]", ctl->mute ? 'M' : ' ');
+	x += 4;
 
 	mvwprintw(ctx->menu_win, y, x - 1 , "[");
 	for (gint i = 0; i < vol; ++i)
