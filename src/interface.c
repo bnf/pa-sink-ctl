@@ -113,22 +113,21 @@ interface_resize(gpointer data)
 static void
 print_volume(struct context *ctx, struct vol_ctl *ctl)
 {
-	gint x = 2 /* left */  + 2 /* index num width */ + 1 /* space */ +
-		1 /* space */ + ctx->max_name_len;
+	gint x, y, volume_bar_len, vol;
 
+	getyx(ctx->menu_win, y, x);
 	/* mute button + brackets + space */
-	int volume_bar_len = getmaxx(ctx->menu_win) - x - 7;
-	gint vol = (gint) (volume_bar_len * ctl->vol / PA_VOLUME_NORM);
+	volume_bar_len = getmaxx(ctx->menu_win) - x - 8;
+	vol = (gint) (volume_bar_len * ctl->vol / PA_VOLUME_NORM);
 
-	mvwprintw(ctx->menu_win, ctx->y, x - 1, " [%c]", ctl->mute ? 'M' : ' ');
-	x += 4;
+	wprintw(ctx->menu_win, " [%c]", ctl->mute ? 'M' : ' ');
 
-	mvwprintw(ctx->menu_win, ctx->y, x - 1 , "[");
+	wprintw(ctx->menu_win, "[");
 	for (gint i = 0; i < vol; ++i)
-		mvwprintw(ctx->menu_win, ctx->y, x + i, "=");
+		wprintw(ctx->menu_win, "=");
 	for (gint i = vol; i < volume_bar_len; ++i)
-		mvwprintw(ctx->menu_win, ctx->y, x + i, " ");
-	mvwprintw(ctx->menu_win, ctx->y, x + volume_bar_len, "]");
+		wprintw(ctx->menu_win, " ");
+	wprintw(ctx->menu_win, "]");
 }
 
 static void
@@ -136,22 +135,23 @@ print_vol_ctl(gpointer data, gpointer user_data)
 {
 	struct vol_ctl *ctl = data;
 	struct context *ctx = user_data;
-	gint x = 2;
+	gint x, y;
 	gboolean selected = (ctl == interface_get_current_ctl(ctx, NULL));
 
+	getyx(ctx->menu_win, y, x);
 	if (selected)
 		wattron(ctx->menu_win, A_REVERSE);
-	if (!ctl->hide_index) {
-		mvwprintw(ctx->menu_win, ctx->y, x, "%2u ", ctl->index);
-		x += 3;
-	}
-	mvwprintw(ctx->menu_win, ctx->y, x, "%*s%-*s",
-		  ctl->indent + (ctl->hide_index ? 2+1 : 0), "",
-		  ctx->max_name_len - ctl->indent, ctl->name);
+
+	if (!ctl->hide_index)
+		wprintw(ctx->menu_win, "%2u ", ctl->index);
+	wprintw(ctx->menu_win, "%*s%-*s",
+		ctl->indent + (ctl->hide_index ? 2+1 : 0), "",
+		ctx->max_name_len - ctl->indent, ctl->name);
+
 	if (selected)
 		wattroff(ctx->menu_win, A_REVERSE);
 	print_volume(ctx, ctl);
-	ctx->y++;
+	wmove(ctx->menu_win, y+1, x);
 
 	if (ctl->childs_foreach)
 		ctl->childs_foreach(ctl, print_vol_ctl, ctx);
@@ -178,7 +178,7 @@ interface_redraw(struct context *ctx)
 	werase(ctx->menu_win);
 	box(ctx->menu_win, 0, 0);
 
-	ctx->y = 2; /* top border + 1 empty line */
+	wmove(ctx->menu_win, 2, 2); /* set initial cursor offset */
 	ctx->max_name_len = 0;
 
 	g_list_foreach(ctx->sink_list, max_name_len_helper, ctx);

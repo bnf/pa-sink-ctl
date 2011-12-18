@@ -33,7 +33,6 @@ struct context {
 
 	WINDOW *menu_win;
 	WINDOW *msg_win;
-	gint y;
 
 	guint resize_source_id;
 #ifdef HAVE_SIGNALFD
