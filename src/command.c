@@ -121,7 +121,7 @@ volume_up(struct context *ctx, int key)
 }
 
 static void
-do_mute(struct context *ctx, int key)
+toggle_mute(struct context *ctx, int key)
 {
 	struct vol_ctl *ctl;
 	pa_operation *o;
@@ -192,7 +192,7 @@ struct command_cb_descriptor command_cbs[] = {
 	{ "down",        down },
 	{ "volume-down", volume_down },
 	{ "volume-up",   volume_up },
-	{ "mute",        do_mute },
+	{ "mute",        toggle_mute },
 	{ "switch",      switch_sink },
 	{ "quit",        quit_cmd },
 	{ NULL,          NULL }
