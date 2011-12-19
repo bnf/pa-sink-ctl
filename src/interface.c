@@ -99,6 +99,8 @@ allocate_volume_bar(struct interface *ifc)
 	getyx(ifc->menu_win, y, x);
 	getmaxyx(ifc->menu_win, max_y, max_x);
 	ifc->volume_bar_len = max_x - x - 8;
+	if (ifc->volume_bar_len < 0)
+		return;
 	ifc->volume_bar = g_new(char, ifc->volume_bar_len+1);
 	/* FIXME: if (ifc->volume_bar == NULL) */
 	memset(ifc->volume_bar, '=', ifc->volume_bar_len);
