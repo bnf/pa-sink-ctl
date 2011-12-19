@@ -41,7 +41,7 @@ static void
 up(struct context *ctx, int key)
 {
 	struct interface *ifc = &ctx->interface;
-	struct sink *sink = NULL;
+	struct main_ctl *sink = NULL;
 
 	if (!ctx->context_ready)
 		return;
@@ -153,7 +153,7 @@ static void
 switch_sink(struct context *ctx, int key)
 {
 	struct interface *ifc = &ctx->interface;
-	struct sink_input *t;
+	struct slave_ctl *t;
 	struct vol_ctl *input, *sink;
 	pa_operation *o;
 	gint i;
@@ -189,7 +189,7 @@ switch_sink(struct context *ctx, int key)
 			ifc->chooser_input = ++i;
 			break;
 		}
-		if (t->sink == sink->index)
+		if (t->parent_index == sink->index)
 			++i;
 	}
 }

@@ -63,22 +63,22 @@ get_name(struct context *ctx, pa_proplist *props, const char * const fallback)
 static gint
 compare_sink_priority(gconstpointer new_data, gconstpointer el_data)
 {
-	const struct sink *new = new_data;
-	const struct sink *el = el_data;
+	const struct main_ctl *new = new_data;
+	const struct main_ctl *el = el_data;
 
 	/* Add 1 to append at end of sinks if priority equals */
 	return el->priority - new->priority + 1;
 }
 
 static void
-sink_childs_foreach(struct vol_ctl *ctl, GFunc func, gpointer user_data)
+main_ctl_childs_foreach(struct vol_ctl *ctl, GFunc func, gpointer user_data)
 {
-	struct sink *sink = (struct sink *) ctl;
-	struct sink_input *input;
+	struct main_ctl *mctl = (struct main_ctl *) ctl;
+	struct slave_ctl *sctl;
 
-	list_foreach(sink->ctx->input_list, input)
-		if (input->sink == sink->base.index)
-			func(&input->base, user_data);
+	list_foreach(*mctl->childs_list, sctl)
+		if (sctl->parent_index == mctl->base.index)
+			func(&sctl->base, user_data);
 }
 
 static void
@@ -86,7 +86,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 	     gint is_last, gpointer userdata)
 {
 	struct context *ctx = userdata;
-	struct sink *sink;
+	struct main_ctl *sink;
 	GList *el;
 
 	if (is_last < 0) {
@@ -105,14 +105,13 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 
 	el = g_list_find_custom(ctx->sink_list, &i->index, compare_idx_pntr);
 	if (el == NULL) {
-		sink = g_new0(struct sink, 1);
+		sink = g_new0(struct main_ctl, 1);
 		if (sink == NULL)
 			return;
 		sink->base.index = i->index;
 		sink->base.mute_set = pa_context_set_sink_mute_by_index;
 		sink->base.volume_set = pa_context_set_sink_volume_by_index;
-		sink->base.childs_foreach = sink_childs_foreach;
-		sink->ctx = ctx;
+		sink->base.childs_foreach = main_ctl_childs_foreach;
 		sink->childs_list = &ctx->input_list;
 
 		sink->priority = get_priority(ctx, i->proplist);
@@ -130,23 +129,11 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 }
 
 static void
-source_childs_foreach(struct vol_ctl *ctl, GFunc func, gpointer user_data)
-{
-	struct source *source = (struct source *) ctl;
-	struct source_output *output;
-
-	list_foreach(source->ctx->output_list, output)
-		if (output->source == source->base.index)
-			func(&output->base, user_data);
-}
-
-
-static void
 source_info_cb(pa_context *c, const pa_source_info *i,
 	       gint is_last, gpointer userdata)
 {
 	struct context *ctx = userdata;
-	struct source *source;
+	struct main_ctl *source;
 	GList *el;
 
 	if (is_last < 0) {
@@ -165,14 +152,13 @@ source_info_cb(pa_context *c, const pa_source_info *i,
 
 	el = g_list_find_custom(ctx->source_list, &i->index, compare_idx_pntr);
 	if (el == NULL) {
-		source = g_new0(struct source, 1);
+		source = g_new0(struct main_ctl, 1);
 		if (source == NULL)
 			return;
 		source->base.index = i->index;
 		source->base.mute_set = pa_context_set_source_mute_by_index;
 		source->base.volume_set = pa_context_set_source_volume_by_index;
-		source->base.childs_foreach = source_childs_foreach;
-		source->ctx = ctx;
+		source->base.childs_foreach = main_ctl_childs_foreach;
 		source->childs_list = &ctx->output_list;
 
 		source->priority = get_priority(ctx, i->proplist);
@@ -195,7 +181,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		   gint is_last, gpointer userdata)
 {
 	struct context *ctx = userdata;
-	struct sink_input *sink_input;
+	struct slave_ctl *sink_input;
 	GList *el;
 
 	if (is_last < 0) {
@@ -216,7 +202,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 
 	el = g_list_find_custom(ctx->input_list, &i->index, compare_idx_pntr);
 	if (el == NULL) {
-		sink_input = g_new0(struct sink_input, 1);
+		sink_input = g_new0(struct slave_ctl, 1);
 		if (sink_input == NULL)
 			return;
 		sink_input->base.index = i->index;
@@ -230,7 +216,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		g_free(sink_input->base.name);
 	}
 
-	sink_input->sink = i->sink;
+	sink_input->parent_index = i->sink;
 	sink_input->base.name =
 		pa_proplist_contains(i->proplist, "application.name") ?
 		g_strdup(pa_proplist_gets(i->proplist, "application.name")) :
@@ -245,7 +231,7 @@ source_output_info_cb(pa_context *c, const pa_source_output_info *i,
 		   gint is_last, gpointer userdata)
 {
 	struct context *ctx = userdata;
-	struct source_output *source_output;
+	struct slave_ctl *source_output;
 	GList *el;
 
 	if (is_last < 0) {
@@ -266,7 +252,7 @@ source_output_info_cb(pa_context *c, const pa_source_output_info *i,
 
 	el = g_list_find_custom(ctx->output_list, &i->index, compare_idx_pntr);
 	if (el == NULL) {
-		source_output = g_new0(struct source_output, 1);
+		source_output = g_new0(struct slave_ctl, 1);
 		if (source_output == NULL)
 			return;
 		source_output->base.index = i->index;
@@ -279,7 +265,7 @@ source_output_info_cb(pa_context *c, const pa_source_output_info *i,
 		g_free(source_output->base.name);
 	}
 
-	source_output->source = i->source;
+	source_output->parent_index = i->source;
 	source_output->base.name =
 		pa_proplist_contains(i->proplist, "application.name") ?
 		g_strdup(pa_proplist_gets(i->proplist, "application.name")) :

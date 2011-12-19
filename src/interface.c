@@ -38,33 +38,16 @@
 #include "unix_signal.h"
 #endif
 
-static struct sink_input *
-sink_get_nth_input(struct context *ctx, struct sink *sink, int n)
+static struct slave_ctl *
+main_ctl_get_nth_child(struct context *ctx, struct main_ctl *ctl, int n)
 {
-	struct sink_input *input;
+	struct slave_ctl *sctl;
 	int i = 0;
 
-	list_foreach(ctx->input_list, input) {
-		if (input->sink != sink->base.index)
-			continue;
-		if (i++ == n)
-			return input;
-	}
-
-	return NULL;
-}
-
-static struct source_output *
-source_get_nth_output(struct context *ctx, struct source *source, int n)
-{
-	struct source_output *output;
-	int i = 0;
-
-	list_foreach(ctx->output_list, output) {
-		if (output->source != source->base.index)
-			continue;
-		if (i++ == n)
-			return output;
+	list_foreach(*ctl->childs_list, sctl) {
+		if (sctl->parent_index == ctl->base.index)
+			if (i++ == n)
+				return sctl;
 	}
 
 	return NULL;
@@ -74,10 +57,8 @@ struct vol_ctl *
 interface_get_current_ctl(struct interface *ifc, struct vol_ctl **parent)
 {
 	struct context *ctx = container_of(ifc, struct context, interface);
-	struct vol_ctl *main_ctl, *ctl;
-	struct sink_input *input;
-	struct source_output *output;
-	int is_sink = 1;
+	struct main_ctl *main_ctl;
+	struct slave_ctl *sctl;
 
 	if (parent)
 		*parent = NULL;
@@ -85,29 +66,20 @@ interface_get_current_ctl(struct interface *ifc, struct vol_ctl **parent)
 	main_ctl = g_list_nth_data(ctx->sink_list, ifc->chooser_sink);
 	if (main_ctl == NULL) {
 		main_ctl = g_list_nth_data(ctx->source_list,
-				      ifc->chooser_sink - g_list_length(ctx->sink_list));
-		is_sink = 0;
+					   ifc->chooser_sink - g_list_length(ctx->sink_list));
 		if (main_ctl == NULL)
 			return NULL;
 	}
 
 	if (ifc->chooser_input == SELECTED_SINK)
-		return main_ctl;
+		return &main_ctl->base;
 	else if (ifc->chooser_input >= 0) {
-		if (is_sink) {
-			input = sink_get_nth_input(ctx, (struct sink *) main_ctl, ifc->chooser_input);
-			if (input == NULL)
-				return NULL;
-			ctl = &input->base;
-		} else {
-			output = source_get_nth_output(ctx, (struct source *) main_ctl, ifc->chooser_input);
-			if (output == NULL)
-				return NULL;
-			ctl = &output->base;
-		}
+		sctl = main_ctl_get_nth_child(ctx, (struct main_ctl *) main_ctl, ifc->chooser_input);
+		if (sctl == NULL)
+			return NULL;
 		if (parent)
-			*parent = main_ctl;
-		return ctl;
+			*parent = &main_ctl->base;
+		return &sctl->base;
 	}
 
 	g_assert(0);
