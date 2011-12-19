@@ -37,6 +37,7 @@ up(struct context *ctx, int key)
 	    ifc->chooser_main_ctl > 0) {
 
 		--ifc->chooser_main_ctl;
+		/* Always a main_ctl since chooser_child = SELECTED_MAIN_CTL */
 		ctl = (struct main_ctl *) interface_get_current_ctl(ifc, NULL);
 
 		/* autoassigment to SELECTED_MAIN_CTL (=-1) if length = 0 */
