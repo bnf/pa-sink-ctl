@@ -154,42 +154,53 @@ switch_sink(struct context *ctx, int key)
 {
 	struct interface *ifc = &ctx->interface;
 	struct slave_ctl *t;
-	struct vol_ctl *input, *sink;
+	struct vol_ctl *cslave, *cparent;
+	struct main_ctl *mcparent;
 	pa_operation *o;
 	gint i;
+	GList **list;
+	int offset;
 
 	if (!ctx->context_ready)
 		return;
 
-
-	input = interface_get_current_ctl(&ctx->interface, &sink);
-	if (!input || !sink)
+	cslave = interface_get_current_ctl(&ctx->interface, &cparent);
+	if (!cslave || !cparent)
 		return;
 
-	if (g_list_length(ctx->sink_list) <= 1)
+	mcparent = (struct main_ctl *) cparent;
+	if (*mcparent->childs_list == ctx->input_list) {
+		list = &ctx->sink_list;
+		offset = 0;
+	} else {
+		list = &ctx->source_list;
+		offset = g_list_length(ctx->sink_list);
+	}
+
+	if (g_list_length(*list) <= 1)
 		return;
 
-	if (ifc->chooser_sink < (gint) g_list_length(ctx->sink_list) - 1)
+	if (ifc->chooser_sink < (gint) (offset + g_list_length(*list) - 1))
 		ifc->chooser_sink++;
 	else
-		ifc->chooser_sink = 0;
+		ifc->chooser_sink = offset;
 
-	sink = g_list_nth_data(ctx->sink_list, ifc->chooser_sink);
+	mcparent = g_list_nth_data(*list, ifc->chooser_sink - offset);
 	/* chooser_input needs to be derived from $selected_index */
-	o = pa_context_move_sink_input_by_index(ctx->context,
-						input->index, sink->index,
-						NULL, NULL);
+	o = mcparent->move_child(ctx->context,
+				 cslave->index, mcparent->base.index,
+				 NULL, NULL);
 	pa_operation_unref(o);
 
 	/* get new chooser_input, if non, select sink as fallback */
 	ifc->chooser_input = SELECTED_SINK; 
 	i = -1;
-	list_foreach(ctx->input_list, t) {
-		if (t->base.index == input->index) {
+	list_foreach(*mcparent->childs_list, t) {
+		if (t->base.index == cslave->index) {
 			ifc->chooser_input = ++i;
 			break;
 		}
-		if (t->parent_index == sink->index)
+		if (t->parent_index == mcparent->base.index)
 			++i;
 	}
 }

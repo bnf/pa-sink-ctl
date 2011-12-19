@@ -112,6 +112,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		sink->base.mute_set = pa_context_set_sink_mute_by_index;
 		sink->base.volume_set = pa_context_set_sink_volume_by_index;
 		sink->base.childs_foreach = main_ctl_childs_foreach;
+		sink->move_child = pa_context_move_sink_input_by_index;
 		sink->childs_list = &ctx->input_list;
 
 		sink->priority = get_priority(ctx, i->proplist);
@@ -159,6 +160,7 @@ source_info_cb(pa_context *c, const pa_source_info *i,
 		source->base.mute_set = pa_context_set_source_mute_by_index;
 		source->base.volume_set = pa_context_set_source_volume_by_index;
 		source->base.childs_foreach = main_ctl_childs_foreach;
+		source->move_child = pa_context_move_source_output_by_index;
 		source->childs_list = &ctx->output_list;
 
 		source->priority = get_priority(ctx, i->proplist);

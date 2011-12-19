@@ -49,6 +49,9 @@ struct main_ctl {
 	gint priority;
 
 	GList **childs_list;
+
+	pa_operation *(*move_child)(pa_context *, guint32 idx, guint32 parent_idx,
+				    pa_context_success_cb_t, gpointer);
 };
 
 struct slave_ctl {
