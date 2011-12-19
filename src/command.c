@@ -59,6 +59,12 @@ down(struct context *ctx, int key)
 		return;
 
 	ctl = interface_get_current_ctl(&ctx->interface, &parent);
+	if (ctl == NULL) {
+		ifc->chooser_child = SELECTED_MAIN_CTL;
+		ctl = interface_get_current_ctl(&ctx->interface, &parent);
+		if (ctl == NULL)
+			return;
+	}
 	if (parent)
 		ctl = parent;
 
