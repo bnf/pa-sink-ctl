@@ -113,6 +113,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		sink->base.volume_set = pa_context_set_sink_volume_by_index;
 		sink->base.childs_foreach = sink_childs_foreach;
 		sink->ctx = ctx;
+		sink->childs_list = &ctx->input_list;
 
 		sink->priority = get_priority(ctx, i->proplist);
 		ctx->sink_list = g_list_insert_sorted(ctx->sink_list, sink,
@@ -172,6 +173,7 @@ source_info_cb(pa_context *c, const pa_source_info *i,
 		source->base.volume_set = pa_context_set_source_volume_by_index;
 		source->base.childs_foreach = source_childs_foreach;
 		source->ctx = ctx;
+		source->childs_list = &ctx->output_list;
 
 		source->priority = get_priority(ctx, i->proplist);
 		ctx->source_list = g_list_insert_sorted(ctx->source_list,

@@ -54,29 +54,60 @@ sink_get_nth_input(struct context *ctx, struct sink *sink, int n)
 	return NULL;
 }
 
+static struct source_output *
+source_get_nth_output(struct context *ctx, struct source *source, int n)
+{
+	struct source_output *output;
+	int i = 0;
+
+	list_foreach(ctx->output_list, output) {
+		if (output->source != source->base.index)
+			continue;
+		if (i++ == n)
+			return output;
+	}
+
+	return NULL;
+}
+
 struct vol_ctl *
 interface_get_current_ctl(struct interface *ifc, struct vol_ctl **parent)
 {
 	struct context *ctx = container_of(ifc, struct context, interface);
-	struct sink *sink;
+	struct vol_ctl *main_ctl, *ctl;
 	struct sink_input *input;
+	struct source_output *output;
+	int is_sink = 1;
 
 	if (parent)
 		*parent = NULL;
 
-	sink = g_list_nth_data(ctx->sink_list, ifc->chooser_sink);
-	if (sink == NULL)
-		return NULL;
+	main_ctl = g_list_nth_data(ctx->sink_list, ifc->chooser_sink);
+	if (main_ctl == NULL) {
+		main_ctl = g_list_nth_data(ctx->source_list,
+				      ifc->chooser_sink - g_list_length(ctx->sink_list));
+		is_sink = 0;
+		if (main_ctl == NULL)
+			return NULL;
+	}
 
 	if (ifc->chooser_input == SELECTED_SINK)
-		return &sink->base;
+		return main_ctl;
 	else if (ifc->chooser_input >= 0) {
-		input = sink_get_nth_input(ctx, sink, ifc->chooser_input);
-		if (input == NULL)
-			return NULL;
+		if (is_sink) {
+			input = sink_get_nth_input(ctx, (struct sink *) main_ctl, ifc->chooser_input);
+			if (input == NULL)
+				return NULL;
+			ctl = &input->base;
+		} else {
+			output = source_get_nth_output(ctx, (struct source *) main_ctl, ifc->chooser_input);
+			if (output == NULL)
+				return NULL;
+			ctl = &output->base;
+		}
 		if (parent)
-			*parent = &sink->base;
-		return &input->base;
+			*parent = main_ctl;
+		return ctl;
 	}
 
 	g_assert(0);

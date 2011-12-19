@@ -25,13 +25,13 @@
 #include "command.h"
 
 static int
-sink_input_len(struct context *ctx, struct sink *sink)
+main_ctl_childs_len(struct context *ctx, struct main_ctl *ctl)
 {
-	struct sink_input *input;
+	struct slave_ctl *sctl;
 	int len = 0;
 
-	list_foreach(ctx->input_list, input)
-		if (input->sink == sink->base.index)
+	list_foreach(*ctl->childs_list, sctl)
+		if (sctl->parent_index == ctl->base.index)
 			len++;
 
 	return len;
@@ -50,7 +50,7 @@ up(struct context *ctx, int key)
 	    ifc->chooser_sink > 0) {
 		sink = g_list_nth_data(ctx->sink_list, --ifc->chooser_sink);
 		/* autoassigment to SELECTED_SINK (=-1) if length = 0 */
-		ifc->chooser_input = sink_input_len(ctx, sink) - 1;
+		ifc->chooser_input = main_ctl_childs_len(ctx, (struct main_ctl *) sink) - 1;
 	} else if (ifc->chooser_input >= 0)
 		--ifc->chooser_input;
 
@@ -61,17 +61,27 @@ static void
 down(struct context *ctx, int key)
 {
 	struct interface *ifc = &ctx->interface;
-	struct sink *sink;
+	int max_input;
+	struct vol_ctl *ctl, *parent;
+	int max_len;
 
 	if (!ctx->context_ready)
 		return;
 
-	sink = g_list_nth_data(ctx->sink_list, ifc->chooser_sink);
-	if (ifc->chooser_input == (sink_input_len(ctx, sink) - 1) &&
-	    ifc->chooser_sink < (gint) g_list_length(ctx->sink_list)-1) {
-		++ifc->chooser_sink;
-		ifc->chooser_input = SELECTED_SINK;
-	} else if (ifc->chooser_input < (sink_input_len(ctx, sink) - 1))
+	max_len = g_list_length(ctx->sink_list) + g_list_length(ctx->source_list);
+
+	ctl = interface_get_current_ctl(&ctx->interface, &parent);
+	if (parent)
+		ctl = parent;
+
+	max_input = main_ctl_childs_len(ctx, (struct main_ctl *) ctl) -1;
+
+	if (ifc->chooser_input == max_input) {
+		if (ifc->chooser_sink < max_len -1) {
+			++ifc->chooser_sink;
+			ifc->chooser_input = SELECTED_SINK;
+		}
+	} else if (ifc->chooser_input < max_input)
 		++ifc->chooser_input;
 
 	interface_redraw(ifc);

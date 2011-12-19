@@ -44,15 +44,29 @@ struct vol_ctl {
 	void (*childs_foreach)(struct vol_ctl *ctx, GFunc func, gpointer udata);
 };
 
+struct main_ctl {
+	struct vol_ctl base;
+	gint priority;
+	struct context *ctx;
+
+	GList **childs_list;
+};
+
 struct sink {
 	struct vol_ctl base;
 	gint priority;
 	struct context *ctx;
+	GList **childs_list;
 };
 
 struct sink_input {
 	struct vol_ctl base;
 	guint32 sink;
+};
+
+struct slave_ctl {
+	struct vol_ctl base;
+	guint32 parent_index;
 };
 
 struct source_output {
@@ -64,6 +78,7 @@ struct source {
 	struct vol_ctl base;
 	gint priority;
 	struct context *ctx;
+	GList **childs_list;
 };
 
 #endif
