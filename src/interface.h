@@ -24,7 +24,7 @@
 #include <pulse/pulseaudio.h>
 #include <ncurses.h>
 
-#define SELECTED_SINK -1
+#define SELECTED_MAIN_CTL -1
 #define H_MSG_BOX 3
 
 struct interface {
@@ -39,8 +39,8 @@ struct interface {
 #endif
 	guint input_source_id;
 
-	gint chooser_sink;
-	gint chooser_input;
+	gint chooser_main_ctl;
+	gint chooser_child;
 
 	guint max_name_len;
 

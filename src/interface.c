@@ -63,18 +63,20 @@ interface_get_current_ctl(struct interface *ifc, struct vol_ctl **parent)
 	if (parent)
 		*parent = NULL;
 
-	main_ctl = g_list_nth_data(ctx->sink_list, ifc->chooser_sink);
+	main_ctl = g_list_nth_data(ctx->sink_list, ifc->chooser_main_ctl);
 	if (main_ctl == NULL) {
 		main_ctl = g_list_nth_data(ctx->source_list,
-					   ifc->chooser_sink - g_list_length(ctx->sink_list));
+					   ifc->chooser_main_ctl -
+					   g_list_length(ctx->sink_list));
 		if (main_ctl == NULL)
 			return NULL;
 	}
 
-	if (ifc->chooser_input == SELECTED_SINK)
+	if (ifc->chooser_child == SELECTED_MAIN_CTL)
 		return &main_ctl->base;
-	else if (ifc->chooser_input >= 0) {
-		sctl = main_ctl_get_nth_child(ctx, (struct main_ctl *) main_ctl, ifc->chooser_input);
+	else if (ifc->chooser_child >= 0) {
+		sctl = main_ctl_get_nth_child(ctx, (struct main_ctl *) main_ctl,
+					      ifc->chooser_child);
 		if (sctl == NULL)
 			return NULL;
 		if (parent)
@@ -276,10 +278,10 @@ interface_init(struct interface *ifc)
 	GIOChannel *input_channel;
 
 	/* Selected sink-device. 0 is the first device */
-	ifc->chooser_sink  = 0;	
+	ifc->chooser_main_ctl  = 0;	
 	/* Selected input of the current sink-device.  */
-	/* SELECTED_SINK refers to sink-device itself  */
-	ifc->chooser_input = SELECTED_SINK;
+	/* SELECTED_MAIN_CTL refers to sink-device itself  */
+	ifc->chooser_child = SELECTED_MAIN_CTL;
 	initscr();
 	clear();
 

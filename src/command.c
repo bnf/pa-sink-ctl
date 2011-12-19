@@ -46,16 +46,16 @@ up(struct context *ctx, int key)
 	if (!ctx->context_ready)
 		return;
 
-	if (ifc->chooser_input == SELECTED_SINK &&
-	    ifc->chooser_sink > 0) {
+	if (ifc->chooser_child == SELECTED_MAIN_CTL &&
+	    ifc->chooser_main_ctl > 0) {
 
-		--ifc->chooser_sink;
+		--ifc->chooser_main_ctl;
 		ctl = (struct main_ctl *) interface_get_current_ctl(ifc, NULL);
 
-		/* autoassigment to SELECTED_SINK (=-1) if length = 0 */
-		ifc->chooser_input = main_ctl_childs_len(ctx, ctl) - 1;
-	} else if (ifc->chooser_input >= 0)
-		--ifc->chooser_input;
+		/* autoassigment to SELECTED_MAIN_CTL (=-1) if length = 0 */
+		ifc->chooser_child = main_ctl_childs_len(ctx, ctl) - 1;
+	} else if (ifc->chooser_child >= 0)
+		--ifc->chooser_child;
 
 	interface_redraw(ifc);
 }
@@ -64,7 +64,7 @@ static void
 down(struct context *ctx, int key)
 {
 	struct interface *ifc = &ctx->interface;
-	int max_input;
+	int max_ctl_childs;
 	struct vol_ctl *ctl, *parent;
 	int max_len;
 
@@ -77,15 +77,15 @@ down(struct context *ctx, int key)
 	if (parent)
 		ctl = parent;
 
-	max_input = main_ctl_childs_len(ctx, (struct main_ctl *) ctl) -1;
+	max_ctl_childs = main_ctl_childs_len(ctx, (struct main_ctl *) ctl) -1;
 
-	if (ifc->chooser_input == max_input) {
-		if (ifc->chooser_sink < max_len -1) {
-			++ifc->chooser_sink;
-			ifc->chooser_input = SELECTED_SINK;
+	if (ifc->chooser_child == max_ctl_childs) {
+		if (ifc->chooser_main_ctl < max_len -1) {
+			++ifc->chooser_main_ctl;
+			ifc->chooser_child = SELECTED_MAIN_CTL;
 		}
-	} else if (ifc->chooser_input < max_input)
-		++ifc->chooser_input;
+	} else if (ifc->chooser_child < max_ctl_childs)
+		++ifc->chooser_child;
 
 	interface_redraw(ifc);
 }
@@ -183,24 +183,24 @@ switch_sink(struct context *ctx, int key)
 	if (g_list_length(*list) <= 1)
 		return;
 
-	if (ifc->chooser_sink < (gint) (offset + g_list_length(*list) - 1))
-		ifc->chooser_sink++;
+	if (ifc->chooser_main_ctl < (gint) (offset + g_list_length(*list) - 1))
+		ifc->chooser_main_ctl++;
 	else
-		ifc->chooser_sink = offset;
+		ifc->chooser_main_ctl = offset;
 
-	mcparent = g_list_nth_data(*list, ifc->chooser_sink - offset);
-	/* chooser_input needs to be derived from $selected_index */
+	mcparent = g_list_nth_data(*list, ifc->chooser_main_ctl - offset);
+	/* chooser_child needs to be derived from $selected_index */
 	o = mcparent->move_child(ctx->context,
 				 cslave->index, mcparent->base.index,
 				 NULL, NULL);
 	pa_operation_unref(o);
 
-	/* get new chooser_input, if non, select sink as fallback */
-	ifc->chooser_input = SELECTED_SINK; 
+	/* get new chooser_child, if non, select sink as fallback */
+	ifc->chooser_child = SELECTED_MAIN_CTL; 
 	i = -1;
 	list_foreach(*mcparent->childs_list, t) {
 		if (t->base.index == cslave->index) {
-			ifc->chooser_input = ++i;
+			ifc->chooser_child = ++i;
 			break;
 		}
 		if (t->parent_index == mcparent->base.index)
