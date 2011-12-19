@@ -41,8 +41,8 @@ struct vol_ctl {
 	pa_operation *(*volume_set)(pa_context *, guint32, const pa_cvolume *,
 				    pa_context_success_cb_t, gpointer);
 
-	void (*childs_foreach)(struct vol_ctl *ctx, GFunc func, gpointer udata);
-	gint (*childs_len)(struct vol_ctl *ctx);
+	void (*childs_foreach)(struct vol_ctl *ctl, GFunc func, gpointer udata);
+	gint (*childs_len)(struct vol_ctl *ctl);
 };
 
 struct main_ctl {
