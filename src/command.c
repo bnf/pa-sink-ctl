@@ -41,16 +41,19 @@ static void
 up(struct context *ctx, int key)
 {
 	struct interface *ifc = &ctx->interface;
-	struct main_ctl *sink = NULL;
+	struct main_ctl *ctl = NULL;
 
 	if (!ctx->context_ready)
 		return;
 
 	if (ifc->chooser_input == SELECTED_SINK &&
 	    ifc->chooser_sink > 0) {
-		sink = g_list_nth_data(ctx->sink_list, --ifc->chooser_sink);
+
+		--ifc->chooser_sink;
+		ctl = (struct main_ctl *) interface_get_current_ctl(ifc, NULL);
+
 		/* autoassigment to SELECTED_SINK (=-1) if length = 0 */
-		ifc->chooser_input = main_ctl_childs_len(ctx, (struct main_ctl *) sink) - 1;
+		ifc->chooser_input = main_ctl_childs_len(ctx, ctl) - 1;
 	} else if (ifc->chooser_input >= 0)
 		--ifc->chooser_input;
 
