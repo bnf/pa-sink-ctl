@@ -42,6 +42,7 @@ struct vol_ctl {
 				    pa_context_success_cb_t, gpointer);
 
 	void (*childs_foreach)(struct vol_ctl *ctx, GFunc func, gpointer udata);
+	gint (*childs_len)(struct vol_ctl *ctx);
 };
 
 struct main_ctl {

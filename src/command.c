@@ -24,19 +24,6 @@
 #include "ctl.h"
 #include "command.h"
 
-static int
-main_ctl_childs_len(struct context *ctx, struct main_ctl *ctl)
-{
-	struct slave_ctl *sctl;
-	int len = 0;
-
-	list_foreach(*ctl->childs_list, sctl)
-		if (sctl->parent_index == ctl->base.index)
-			len++;
-
-	return len;
-}
-
 static void
 up(struct context *ctx, int key)
 {
@@ -53,7 +40,7 @@ up(struct context *ctx, int key)
 		ctl = (struct main_ctl *) interface_get_current_ctl(ifc, NULL);
 
 		/* autoassigment to SELECTED_MAIN_CTL (=-1) if length = 0 */
-		ifc->chooser_child = main_ctl_childs_len(ctx, ctl) - 1;
+		ifc->chooser_child = ctl->base.childs_len(&ctl->base) - 1;
 	} else if (ifc->chooser_child >= 0)
 		--ifc->chooser_child;
 
@@ -77,7 +64,7 @@ down(struct context *ctx, int key)
 	if (parent)
 		ctl = parent;
 
-	max_ctl_childs = main_ctl_childs_len(ctx, (struct main_ctl *) ctl) -1;
+	max_ctl_childs = ctl->childs_len(ctl) -1;
 
 	if (ifc->chooser_child == max_ctl_childs) {
 		if (ifc->chooser_main_ctl < max_len -1) {

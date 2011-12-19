@@ -81,6 +81,20 @@ main_ctl_childs_foreach(struct vol_ctl *ctl, GFunc func, gpointer user_data)
 			func(&sctl->base, user_data);
 }
 
+static gint
+main_ctl_childs_len(struct vol_ctl *ctl)
+{
+	struct main_ctl *mctl = (struct main_ctl *) ctl;
+	struct slave_ctl *sctl;
+	int len = 0;
+
+	list_foreach(*mctl->childs_list, sctl)
+		if (sctl->parent_index == mctl->base.index)
+			len++;
+
+	return len;
+}
+
 static void
 sink_info_cb(pa_context *c, const pa_sink_info *i,
 	     gint is_last, gpointer userdata)
@@ -112,6 +126,7 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		sink->base.mute_set = pa_context_set_sink_mute_by_index;
 		sink->base.volume_set = pa_context_set_sink_volume_by_index;
 		sink->base.childs_foreach = main_ctl_childs_foreach;
+		sink->base.childs_len = main_ctl_childs_len;
 		sink->move_child = pa_context_move_sink_input_by_index;
 		sink->childs_list = &ctx->input_list;
 
@@ -160,6 +175,7 @@ source_info_cb(pa_context *c, const pa_source_info *i,
 		source->base.mute_set = pa_context_set_source_mute_by_index;
 		source->base.volume_set = pa_context_set_source_volume_by_index;
 		source->base.childs_foreach = main_ctl_childs_foreach;
+		source->base.childs_len = main_ctl_childs_len;
 		source->move_child = pa_context_move_source_output_by_index;
 		source->childs_list = &ctx->output_list;
 
