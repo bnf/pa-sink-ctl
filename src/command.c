@@ -54,21 +54,18 @@ down(struct context *ctx, int key)
 	struct interface *ifc = &ctx->interface;
 	int max_ctl_childs;
 	struct vol_ctl *ctl, *parent;
-	int max_len;
 
 	if (!ctx->context_ready)
 		return;
-
-	max_len = g_list_length(ctx->sink_list) + g_list_length(ctx->source_list);
 
 	ctl = interface_get_current_ctl(&ctx->interface, &parent);
 	if (parent)
 		ctl = parent;
 
 	max_ctl_childs = ctl->childs_len(ctl) -1;
-
 	if (ifc->chooser_child == max_ctl_childs) {
-		if (ifc->chooser_main_ctl < max_len -1) {
+		if (ifc->chooser_main_ctl <
+		    interface_get_main_ctl_length(ifc) -1) {
 			++ifc->chooser_main_ctl;
 			ifc->chooser_child = SELECTED_MAIN_CTL;
 		}

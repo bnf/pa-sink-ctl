@@ -50,6 +50,9 @@ struct interface {
 struct vol_ctl *
 interface_get_current_ctl(struct interface *ifc, struct vol_ctl **parent);
 
+int
+interface_get_main_ctl_length(struct interface *ifc);
+
 void
 interface_redraw(struct interface *ifc);
 

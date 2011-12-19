@@ -190,6 +190,14 @@ interface_redraw(struct interface *ifc)
 	wrefresh(ifc->menu_win);
 }
 
+int
+interface_get_main_ctl_length(struct interface *ifc)
+{
+	struct context *ctx = container_of(ifc, struct context, interface);
+
+	return g_list_length(ctx->sink_list) + g_list_length(ctx->source_list);
+}
+
 static gboolean
 interface_get_input(GIOChannel *source, GIOCondition condition, gpointer data)
 {
