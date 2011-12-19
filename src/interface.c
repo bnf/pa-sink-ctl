@@ -27,7 +27,7 @@
 #include <ncurses.h>
 
 #include "interface.h"
-#include "sink.h"
+#include "ctl.h"
 #include "command.h"
 #include "pa-sink-ctl.h"
 

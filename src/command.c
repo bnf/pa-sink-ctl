@@ -21,7 +21,7 @@
 
 #include "pa-sink-ctl.h"
 #include "interface.h"
-#include "sink.h"
+#include "ctl.h"
 #include "command.h"
 
 static int

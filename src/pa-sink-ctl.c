@@ -22,7 +22,7 @@
 #include <pulse/glib-mainloop.h>
 #include <string.h>
 
-#include "sink.h"
+#include "ctl.h"
 #include "interface.h"
 #include "config.h"
 #include "pa-sink-ctl.h"
