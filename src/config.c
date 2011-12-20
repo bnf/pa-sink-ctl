@@ -175,9 +175,9 @@ config_init(struct config *cfg)
 			break;
 	}
 	if (error) {
-			g_printerr("Failed to open config file: %s\n",
-				   error->message);
-			return -1;
+		g_printerr("Failed to open config file: %s\n",
+			   error->message);
+		return -1;
 	}
 
 	if (read_settings(cfg) < 0)

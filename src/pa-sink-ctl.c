@@ -100,7 +100,7 @@ main_ctl_prev_ctl(struct vol_ctl *ctl)
 {
 	struct main_ctl *mctl = (struct main_ctl *) ctl;
 	GList *el, *prev;
-	
+
 	el = g_list_find(*mctl->list, mctl);
 	if (el == NULL)
 		return NULL;
@@ -114,7 +114,7 @@ main_ctl_next_ctl(struct vol_ctl *ctl)
 {
 	struct main_ctl *mctl = (struct main_ctl *) ctl;
 	GList *el, *next;
-	
+
 	el = g_list_find(*mctl->list, mctl);
 	if (el == NULL)
 		return NULL;
@@ -234,7 +234,7 @@ source_info_cb(pa_context *c, const pa_source_info *i,
 		source->priority = get_priority(ctx, i->proplist);
 		ctx->source_list = g_list_insert_sorted(ctx->source_list,
 							source,
-						      /*FIXME*/compare_sink_priority);
+							/*FIXME*/compare_sink_priority);
 	} else {
 		source = el->data;
 		g_free(source->base.name);
@@ -264,7 +264,7 @@ slave_ctl_prev_ctl(struct vol_ctl *ctl)
 {
 	struct slave_ctl *sctl = (struct slave_ctl *) ctl;
 	GList *el, *prev;
-	
+
 	el = g_list_find(*sctl->list, sctl);
 	if (el == NULL)
 		return NULL;
@@ -283,7 +283,7 @@ slave_ctl_next_ctl(struct vol_ctl *ctl)
 {
 	struct slave_ctl *sctl = (struct slave_ctl *) ctl;
 	GList *el, *next;
-	
+
 	el = g_list_find(*sctl->list, sctl);
 	if (el == NULL)
 		return NULL;
@@ -354,7 +354,7 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 
 static void
 source_output_info_cb(pa_context *c, const pa_source_output_info *i,
-		   gint is_last, gpointer userdata)
+		      gint is_last, gpointer userdata)
 {
 	struct context *ctx = userdata;
 	struct slave_ctl *source_output;
@@ -580,7 +580,7 @@ main(int argc, char** argv)
 	ctx.loop = g_main_loop_new(NULL, FALSE);
 	if (!ctx.loop)
 		goto cleanup_context;
-	
+
 	if (config_init(&ctx.config) < 0)
 		goto cleanup_loop;
 
