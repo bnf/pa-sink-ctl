@@ -38,56 +38,6 @@
 #include "unix_signal.h"
 #endif
 
-static struct slave_ctl *
-main_ctl_get_nth_child(struct context *ctx, struct main_ctl *ctl, int n)
-{
-	struct slave_ctl *sctl;
-	int i = 0;
-
-	list_foreach(*ctl->childs_list, sctl) {
-		if (sctl->parent_index == ctl->base.index)
-			if (i++ == n)
-				return sctl;
-	}
-
-	return NULL;
-}
-
-struct vol_ctl *
-interface_get_current_ctl(struct interface *ifc, struct vol_ctl **parent)
-{
-	struct context *ctx = container_of(ifc, struct context, interface);
-	struct main_ctl *main_ctl;
-	struct slave_ctl *sctl;
-
-	if (parent)
-		*parent = NULL;
-
-	main_ctl = g_list_nth_data(ctx->sink_list, ifc->chooser_main_ctl);
-	if (main_ctl == NULL) {
-		main_ctl = g_list_nth_data(ctx->source_list,
-					   ifc->chooser_main_ctl -
-					   g_list_length(ctx->sink_list));
-		if (main_ctl == NULL)
-			return NULL;
-	}
-
-	if (ifc->chooser_child == SELECTED_MAIN_CTL)
-		return &main_ctl->base;
-	else if (ifc->chooser_child >= 0) {
-		sctl = main_ctl_get_nth_child(ctx, (struct main_ctl *) main_ctl,
-					      ifc->chooser_child);
-		if (sctl == NULL)
-			return NULL;
-		if (parent)
-			*parent = &main_ctl->base;
-		return &sctl->base;
-	}
-
-	g_assert(0);
-	return NULL;
-}
-
 static void
 allocate_volume_bar(struct interface *ifc)
 {
@@ -127,10 +77,9 @@ print_vol_ctl(gpointer data, gpointer user_data)
 	struct vol_ctl *ctl = data;
 	struct interface *ifc = user_data;
 	gint x, y;
-	gboolean selected = (ctl == interface_get_current_ctl(ifc, NULL));
 
 	getyx(ifc->menu_win, y, x);
-	if (selected)
+	if (ctl == ifc->current_ctl)
 		wattron(ifc->menu_win, A_REVERSE);
 
 	if (!ctl->hide_index)
@@ -139,7 +88,7 @@ print_vol_ctl(gpointer data, gpointer user_data)
 		ctl->indent + (ctl->hide_index ? 2+1 : 0), "",
 		ifc->max_name_len - ctl->indent, ctl->name);
 
-	if (selected)
+	if (ctl == ifc->current_ctl)
 		wattroff(ifc->menu_win, A_REVERSE);
 	print_volume(ifc, ctl);
 	wmove(ifc->menu_win, y+1, x);
@@ -178,6 +127,11 @@ interface_redraw(struct interface *ifc)
 		g_free(ifc->volume_bar);
 		ifc->volume_bar = NULL;
 	}
+
+	if (ifc->current_ctl == NULL)
+		ifc->current_ctl = g_list_nth_data(ctx->sink_list, 0);
+	if (ifc->current_ctl == NULL)
+		ifc->current_ctl = g_list_nth_data(ctx->source_list, 0);
 
 	g_list_foreach(ctx->sink_list, max_name_len_helper, ifc);
 	g_list_foreach(ctx->source_list, max_name_len_helper, ifc);
@@ -287,11 +241,8 @@ interface_init(struct interface *ifc)
 {
 	GIOChannel *input_channel;
 
-	/* Selected sink-device. 0 is the first device */
-	ifc->chooser_main_ctl  = 0;	
-	/* Selected input of the current sink-device.  */
-	/* SELECTED_MAIN_CTL refers to sink-device itself  */
-	ifc->chooser_child = SELECTED_MAIN_CTL;
+	ifc->current_ctl = NULL;
+
 	initscr();
 	clear();
 

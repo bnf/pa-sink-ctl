@@ -43,6 +43,11 @@ struct vol_ctl {
 
 	void (*childs_foreach)(struct vol_ctl *ctl, GFunc func, gpointer udata);
 	gint (*childs_len)(struct vol_ctl *ctl);
+	struct vol_ctl *(*get_nth_child)(struct vol_ctl *ctl, int n);
+	struct vol_ctl *(*get_parent)(struct vol_ctl *ctl);
+
+	struct vol_ctl *(*prev_ctl)(struct vol_ctl *ctl);
+	struct vol_ctl *(*next_ctl)(struct vol_ctl *ctl);
 };
 
 struct main_ctl {
@@ -50,6 +55,7 @@ struct main_ctl {
 	gint priority;
 
 	GList **childs_list;
+	GList **list;
 
 	pa_operation *(*move_child)(pa_context *, guint32 idx, guint32 parent_idx,
 				    pa_context_success_cb_t, gpointer);
@@ -58,6 +64,8 @@ struct main_ctl {
 struct slave_ctl {
 	struct vol_ctl base;
 	guint32 parent_index;
+	GList **parent_list;
+	GList **list;
 };
 
 #endif

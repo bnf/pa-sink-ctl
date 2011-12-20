@@ -95,6 +95,50 @@ main_ctl_childs_len(struct vol_ctl *ctl)
 	return len;
 }
 
+static struct vol_ctl *
+main_ctl_prev_ctl(struct vol_ctl *ctl)
+{
+	struct main_ctl *mctl = (struct main_ctl *) ctl;
+	GList *el, *prev;
+	
+	el = g_list_find(*mctl->list, mctl);
+	if (el == NULL)
+		return NULL;
+	prev = el->prev;
+
+	return prev ? prev->data : NULL;
+}
+
+static struct vol_ctl *
+main_ctl_next_ctl(struct vol_ctl *ctl)
+{
+	struct main_ctl *mctl = (struct main_ctl *) ctl;
+	GList *el, *next;
+	
+	el = g_list_find(*mctl->list, mctl);
+	if (el == NULL)
+		return NULL;
+	next = el->next;
+
+	return next ? next->data : NULL;
+}
+
+static struct vol_ctl *
+main_ctl_get_nth_child(struct vol_ctl *ctl, int n)
+{
+	struct main_ctl *mctl = (struct main_ctl *) ctl;
+	struct slave_ctl *sctl;
+	int i = 0;
+
+	list_foreach(*mctl->childs_list, sctl) {
+		if (sctl->parent_index == mctl->base.index)
+			if (i++ == n)
+				return &sctl->base;
+	}
+
+	return NULL;
+}
+
 static void
 sink_info_cb(pa_context *c, const pa_sink_info *i,
 	     gint is_last, gpointer userdata)
@@ -127,7 +171,11 @@ sink_info_cb(pa_context *c, const pa_sink_info *i,
 		sink->base.volume_set = pa_context_set_sink_volume_by_index;
 		sink->base.childs_foreach = main_ctl_childs_foreach;
 		sink->base.childs_len = main_ctl_childs_len;
+		sink->base.get_nth_child = main_ctl_get_nth_child;
+		sink->base.prev_ctl = main_ctl_prev_ctl;
+		sink->base.next_ctl = main_ctl_next_ctl;
 		sink->move_child = pa_context_move_sink_input_by_index;
+		sink->list = &ctx->sink_list;
 		sink->childs_list = &ctx->input_list;
 
 		sink->priority = get_priority(ctx, i->proplist);
@@ -176,7 +224,11 @@ source_info_cb(pa_context *c, const pa_source_info *i,
 		source->base.volume_set = pa_context_set_source_volume_by_index;
 		source->base.childs_foreach = main_ctl_childs_foreach;
 		source->base.childs_len = main_ctl_childs_len;
+		source->base.get_nth_child = main_ctl_get_nth_child;
+		source->base.prev_ctl = main_ctl_prev_ctl;
+		source->base.next_ctl = main_ctl_next_ctl;
 		source->move_child = pa_context_move_source_output_by_index;
+		source->list = &ctx->source_list;
 		source->childs_list = &ctx->output_list;
 
 		source->priority = get_priority(ctx, i->proplist);
@@ -192,6 +244,57 @@ source_info_cb(pa_context *c, const pa_source_info *i,
 	source->base.vol      = pa_cvolume_avg(&i->volume);
 	source->base.channels = i->volume.channels;
 	source->base.name     = get_name(ctx, i->proplist, i->name);
+}
+
+static struct vol_ctl *
+slave_ctl_get_parent(struct vol_ctl *ctl)
+{
+	struct slave_ctl *sctl = (struct slave_ctl *) ctl;
+	struct vol_ctl *main_ctl;
+
+	list_foreach(*sctl->parent_list, main_ctl)
+		if (sctl->parent_index == main_ctl->index)
+			return main_ctl;
+
+	return NULL;
+}
+
+static struct vol_ctl *
+slave_ctl_prev_ctl(struct vol_ctl *ctl)
+{
+	struct slave_ctl *sctl = (struct slave_ctl *) ctl;
+	GList *el, *prev;
+	
+	el = g_list_find(*sctl->list, sctl);
+	if (el == NULL)
+		return NULL;
+
+	while ((prev = el->prev)) {
+		struct slave_ctl *t = prev->data;
+		if (t->parent_index == sctl->parent_index)
+			return &t->base;
+	}
+
+	return NULL;
+}
+
+static struct vol_ctl *
+slave_ctl_next_ctl(struct vol_ctl *ctl)
+{
+	struct slave_ctl *sctl = (struct slave_ctl *) ctl;
+	GList *el, *next;
+	
+	el = g_list_find(*sctl->list, sctl);
+	if (el == NULL)
+		return NULL;
+
+	while ((next = el->next)) {
+		struct slave_ctl *t = next->data;
+		if (t->parent_index == sctl->parent_index)
+			return &t->base;
+	}
+
+	return NULL;
 }
 
 static void
@@ -228,6 +331,11 @@ sink_input_info_cb(pa_context *c, const pa_sink_input_info *i,
 		sink_input->base.hide_index = TRUE;
 		sink_input->base.mute_set = pa_context_set_sink_input_mute;
 		sink_input->base.volume_set = pa_context_set_sink_input_volume;
+		sink_input->base.get_parent = slave_ctl_get_parent;
+		sink_input->base.prev_ctl = slave_ctl_prev_ctl;
+		sink_input->base.next_ctl = slave_ctl_next_ctl;
+		sink_input->list = &ctx->input_list;
+		sink_input->parent_list = &ctx->sink_list;
 		ctx->input_list = g_list_append(ctx->input_list, sink_input);
 	} else {
 		sink_input = el->data;
@@ -276,6 +384,11 @@ source_output_info_cb(pa_context *c, const pa_source_output_info *i,
 		source_output->base.index = i->index;
 		source_output->base.indent = 1;
 		source_output->base.hide_index = TRUE;
+		source_output->base.get_parent = slave_ctl_get_parent;
+		source_output->base.prev_ctl = slave_ctl_prev_ctl;
+		source_output->base.next_ctl = slave_ctl_next_ctl;
+		source_output->list = &ctx->output_list;
+		source_output->parent_list = &ctx->source_list;
 		ctx->output_list = g_list_append(ctx->output_list,
 						 source_output);
 	} else {
@@ -306,6 +419,9 @@ remove_index(struct context *ctx, GList **list, guint32 idx)
 
 	if (el == NULL)
 		return FALSE;
+
+	if (el->data == ctx->interface.current_ctl)
+		ctx->interface.current_ctl = NULL;
 
 	vol_ctl_free(el->data);
 	*list = g_list_delete_link(*list, el);

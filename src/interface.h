@@ -38,17 +38,12 @@ struct interface {
 	int signal_fd;
 #endif
 	guint input_source_id;
-
-	gint chooser_main_ctl;
-	gint chooser_child;
-
 	guint max_name_len;
 
 	gchar *status;
-};
 
-struct vol_ctl *
-interface_get_current_ctl(struct interface *ifc, struct vol_ctl **parent);
+	struct vol_ctl *current_ctl;
+};
 
 int
 interface_get_main_ctl_length(struct interface *ifc);
