@@ -269,7 +269,7 @@ slave_ctl_prev_ctl(struct vol_ctl *ctl)
 	if (el == NULL)
 		return NULL;
 
-	while ((prev = el->prev)) {
+	for (prev = el->prev; prev; prev = prev->prev) {
 		struct slave_ctl *t = prev->data;
 		if (t->parent_index == sctl->parent_index)
 			return &t->base;
@@ -288,7 +288,7 @@ slave_ctl_next_ctl(struct vol_ctl *ctl)
 	if (el == NULL)
 		return NULL;
 
-	while ((next = el->next)) {
+	for (next = el->next; next; next = next->next) {
 		struct slave_ctl *t = next->data;
 		if (t->parent_index == sctl->parent_index)
 			return &t->base;
