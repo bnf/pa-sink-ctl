@@ -121,7 +121,6 @@ interface_redraw(struct interface *ifc)
 	werase(ifc->menu_win);
 	box(ifc->menu_win, 0, 0);
 
-	wmove(ifc->menu_win, 2, 2); /* set initial cursor offset */
 	ifc->max_name_len = 0;
 	if (ifc->volume_bar) {
 		g_free(ifc->volume_bar);
@@ -136,11 +135,16 @@ interface_redraw(struct interface *ifc)
 	g_list_foreach(ctx->sink_list, max_name_len_helper, ifc);
 	g_list_foreach(ctx->source_list, max_name_len_helper, ifc);
 
+	wmove(ifc->menu_win, 2, 2);
+	wprintw(ifc->menu_win, "Sinks");
+	wmove(ifc->menu_win, 3, 2); /* set initial cursor offset */
 	g_list_foreach(ctx->sink_list, print_vol_ctl, ifc);
 	getmaxyx(ifc->menu_win, y, x);
 	whline(ifc->menu_win, 0, x - 4);
 	getyx(ifc->menu_win, y, x);
 	wmove(ifc->menu_win, y + 1, x);
+	wprintw(ifc->menu_win, "Sources");
+	wmove(ifc->menu_win, y + 2, x);
 	g_list_foreach(ctx->source_list, print_vol_ctl, ifc);
 
 	wrefresh(ifc->menu_win);
