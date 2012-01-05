@@ -3,6 +3,9 @@
 
 # executable
 pa-sink-ctl
+# man
+pa-sink-ctl.1
+pa-sink-ctl.1.html
 # objects
 *.o
 

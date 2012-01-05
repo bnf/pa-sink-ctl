@@ -1,0 +1,74 @@
+pa-sink-ctl(1)
+==============
+
+
+NAME
+----
+pa-sink-ctl - NCurses based PulseAudio control client
+
+SYNOPSIS
+--------
+*pa-sink-ctl*
+
+DESCRIPTION
+-----------
+*pa-sink-ctl* is a ncurses PulseAudio control utitilty that lets you change
+volume, set mute state and change outputs/inputs of PulseAudio controls.
+
+This program takes no command line options.
+
+DEFAULT KEYBINDINGS
+-------------------
+
+ up     -- [ UP,     k,     w   ] 
+ down   -- [ DOWN,   j,     s   ] 
+ left   -- [ LEFT,   h,     a   ] 
+ right  -- [ RIGHT,  l,     d   ] 
+ mute   -- [ M,      m,     x   ] 
+ switch -- [ RETURN, SPACE, TAB ]
+ quit   -- [ ESCAPE, q          ] 
+
+See `input' section of `Available Config Groups' for an explanation of these
+commands.
+
+CONFIGURATION
+-------------
+The configuration is read either from '/etc/xdg/pa-sink-ctl/config'
+or '$XDG_CONFIG_HOME/pa-sink-ctl/config' if available.
+The configuration file corresponds to the Desktop Entry Specification.
+Key files consists of groups of key-value pairs, interspersed with comments.
+Value list elements are seperated by '';''.
+
+See '/etc/xdg/pa-sink-ctl/config' for an example config.
+
+Available Config Groups
+~~~~~~~~~~~~~~~~~~~~~~~
+pa-sink-ctl
+^^^^^^^^^^^
+ name-properties - Properties tried in order as control name
+
+input
+^^^^^
+Input values are a list of keys for an action.
+
+ up          - Select next control
+ down        - Select previous control
+ volume-down - Increase volume
+ volume-up   - Decrease Volume
+ mute        - Mute currently selected control
+ switch      - Move a input / output to next sink / source
+ quit        - Quit pa-sink-ctl
+
+priority *
+^^^^^^^^^^
+ match    - PulseAudio property to match against
+ value    - Value to compare against 'match'
+ priority - Priority to assign to device with matched value
+
+AUTHOR
+------
+Benjamin Franzke & Jan Klemkow
+
+SEE ALSO
+--------
+'pactl(1)', 'pacmd(1)'
