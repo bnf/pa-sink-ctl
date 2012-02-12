@@ -158,7 +158,7 @@ toggle_mute(struct context *ctx, int key)
 		return;
 
 	ctl = ctx->interface.current_ctl;
-	if (!ctl && !ctl->mute_set)
+	if (!ctl || !ctl->mute_set)
 		return;
 
 	o = ctl->mute_set(ctx->context, ctl->index, !ctl->mute, NULL, NULL);
