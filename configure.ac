@@ -16,7 +16,7 @@
 
 #AC_PREREQ([2.65])
 AC_INIT([pa-sink-ctl], [1], [web2p10@wemelug.de])
-AM_INIT_AUTOMAKE([1.11 foreign dist-bzip2])
+AM_INIT_AUTOMAKE([1.11 foreign dist-xz])
 AM_SILENT_RULES([yes])
 
 AC_CONFIG_SRCDIR([src/pa-sink-ctl.c])
