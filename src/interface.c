@@ -42,6 +42,8 @@ static void
 allocate_volume_bar(struct interface *ifc)
 {
 	gint x, y, max_x, max_y;
+	(void) y;
+	(void) max_y;
 
 	if (ifc->volume_bar)
 		return;
