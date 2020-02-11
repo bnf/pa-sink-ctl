@@ -28,7 +28,7 @@ struct context;
 struct vol_ctl {
 	guint32 index;
 	gchar *name; /* displayed name */
-	gint indent; /* indentation when displayed */
+	guint indent; /* indentation when displayed */
 	gboolean hide_index;
 
 	pa_volume_t vol; // TOTO: exchange with the channel-list

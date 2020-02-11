@@ -73,22 +73,61 @@ print_volume(struct interface *ifc, struct vol_ctl *ctl)
 		ctl->mute ? 'M':' ', ifc->volume_bar_len, vol, ifc->volume_bar);
 }
 
+
 static void
 print_vol_ctl(gpointer data, gpointer user_data)
 {
 	struct vol_ctl *ctl = data;
 	struct interface *ifc = user_data;
 	gint x, y;
+	guint i;
+	size_t name_len;
 
 	getyx(ifc->menu_win, y, x);
 	if (ctl == ifc->current_ctl)
 		wattron(ifc->menu_win, A_REVERSE);
 
-	if (!ctl->hide_index)
+	if (!ctl->hide_index) {
 		wprintw(ifc->menu_win, "%2u ", ctl->index);
-	wprintw(ifc->menu_win, "%*s%-*s",
-		ctl->indent + (ctl->hide_index ? 2+1 : 0), "",
-		ifc->max_name_len - ctl->indent, ctl->name);
+	} else {
+		// Add padding instead of the (hidden) index
+		for (i = 0; i < (2+1); ++i) {
+			waddch(ifc->menu_win, ' ');
+		}
+	}
+
+	for (i = 0; i < ctl->indent; ++i) {
+		waddch(ifc->menu_win, ' ');
+	}
+	name_len = g_utf8_strlen(ctl->name, -1);
+#if 1
+	// Note: This is supoosed to be non portable
+	// Quote from https://stackoverflow.com/a/30835920/4223467
+	//   ncurses differs from X/Open curses by allowing multibyte characters
+	//   to be added via the waddstr (and waddch) interfaces. Actually this would
+	//   be the "ncursesw" library (the "ncurses" library does 8-bit encodings).
+	waddstr(ifc->menu_win, ctl->name);
+#else
+	{
+		wchar_t *wname = g_new(wchar_t, name_len + 1);
+		// requires #include <stdlib.h>
+		gint count = mbstowcs(wname, name, name_len + 1);
+		// Require _XOPEN_SOURCE 600 (according to `man 3x ncurses` 700 is recommended).
+		// configure.ac:
+		// AC_DEFINE([_XOPEN_SOURCE], [600], [Enable X/Open 6, incorporating POSIX 2004 definitions])
+		waddnwstr(ifc->menu_win, wname, count);
+		g_free(wname);
+	}
+
+#endif
+
+	// Add padding
+	for (i = 0; i < ifc->max_name_len - name_len - ctl->indent; ++i) {
+		waddch(ifc->menu_win, ' ');
+	}
+
+	//wprintw(ifc->menu_win, "%-*s",
+	//	max_name_len - ctl->indent, name);
 
 	if (ctl == ifc->current_ctl)
 		wattroff(ifc->menu_win, A_REVERSE);
@@ -106,7 +145,7 @@ max_name_len_helper(gpointer data, gpointer user_data)
 	struct interface *ifc = user_data;
 	guint len;
 
-	len = ctl->indent + strlen(ctl->name);
+	len = ctl->indent + g_utf8_strlen(ctl->name, -1);
 	if (len > ifc->max_name_len)
 		ifc->max_name_len = len;
 
