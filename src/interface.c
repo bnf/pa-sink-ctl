@@ -73,22 +73,57 @@ print_volume(struct interface *ifc, struct vol_ctl *ctl)
 		ctl->mute ? 'M':' ', ifc->volume_bar_len, vol, ifc->volume_bar);
 }
 
+static char *
+ellipsize(char *str, size_t length)
+{
+	char *trimmed;
+	size_t offset_start, offset_end;
+
+	if (strlen(str) <= length) {
+		return g_strdup(str);
+	}
+
+	trimmed = g_new(char, length + 1);
+
+	offset_start = length/2 - 2;
+	offset_end = length - offset_start - 3;
+
+	strncpy(trimmed, str, offset_start);
+
+	trimmed[offset_start] = '.';
+	trimmed[offset_start+1] = '.';
+	trimmed[offset_start+2] = '.';
+
+	strncpy(&trimmed[offset_start+3], &str[strlen(str) - offset_end], offset_end);
+	trimmed[length] = '\0';
+
+	return trimmed;
+}
+
 static void
 print_vol_ctl(gpointer data, gpointer user_data)
 {
 	struct vol_ctl *ctl = data;
 	struct interface *ifc = user_data;
 	gint x, y;
+	size_t max_x, max_y, name_len;
+	char *name;
+	(void) max_y;
 
 	getyx(ifc->menu_win, y, x);
 	if (ctl == ifc->current_ctl)
 		wattron(ifc->menu_win, A_REVERSE);
 
+	getmaxyx(ifc->menu_win, max_y, max_x);
+	name_len =(ifc->max_name_len > max_x / 2 ) ? max_x / 5 * 2 : ifc->max_name_len;
+
 	if (!ctl->hide_index)
 		wprintw(ifc->menu_win, "%2u ", ctl->index);
+	name = ellipsize(ctl->name, name_len);
 	wprintw(ifc->menu_win, "%*s%-*s",
 		ctl->indent + (ctl->hide_index ? 2+1 : 0), "",
-		ifc->max_name_len - ctl->indent, ctl->name);
+		name_len - ctl->indent, name);
+	g_free(name);
 
 	if (ctl == ifc->current_ctl)
 		wattroff(ifc->menu_win, A_REVERSE);
