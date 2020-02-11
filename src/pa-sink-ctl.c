@@ -21,6 +21,7 @@
 #include <pulse/pulseaudio.h>
 #include <pulse/glib-mainloop.h>
 #include <string.h>
+#include <locale.h>
 
 #include "ctl.h"
 #include "interface.h"
@@ -570,6 +571,7 @@ main(int argc, char** argv)
 	pa_mainloop_api  *mainloop_api = NULL;
 	pa_glib_mainloop *m            = NULL;
 
+	setlocale(LC_ALL, "");
 	memset(&ctx, 0, sizeof ctx);
 
 	ctx.sink_list = NULL;

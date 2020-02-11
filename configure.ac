@@ -29,7 +29,7 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
 # Checks for libraries.
-AC_CHECK_LIB([ncurses], [newwin], [CURSES_LIBS=-lncurses], AC_MSG_ERROR([curses required]))
+AC_CHECK_LIB([ncursesw], [newwin], [CURSES_LIBS=-lncursesw], AC_MSG_ERROR([curses required]))
 
 PKG_CHECK_MODULES(PULSE, [libpulse], [], AC_MSG_ERROR([libpulse required]))
 PKG_CHECK_MODULES(PULSE_MAINLOOP, [libpulse-mainloop-glib], [], AC_MSG_ERROR([libpulse-mainloop-glib required]))
