@@ -17,6 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _XOPEN_SOURCE 700
+#define NCURSES_WIDECHAR 1
+
 #include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
@@ -30,6 +33,7 @@
 #include "ctl.h"
 #include "command.h"
 #include "pa-sink-ctl.h"
+//#include "string-util.h"
 
 #ifdef HAVE_SIGNALFD
 #include <sys/signalfd.h>
@@ -83,6 +87,9 @@ ellipsize(char *str, size_t length)
 		return g_strdup(str);
 	}
 
+	/* TODO: currently required to normalize long size */
+	length = length + 2;
+
 	trimmed = g_new(char, length + 1);
 
 	offset_start = length/2 - 2;
@@ -90,9 +97,16 @@ ellipsize(char *str, size_t length)
 
 	strncpy(trimmed, str, offset_start);
 
+	/*
 	trimmed[offset_start] = '.';
 	trimmed[offset_start+1] = '.';
-	trimmed[offset_start+2] = '.';
+	trimmed[offset_start+2] = '.'; 
+	*/
+
+	// Unicode '…' character
+	trimmed[offset_start] = (char)0xe2;
+	trimmed[offset_start+1] = (char)0x80;
+	trimmed[offset_start+2] = (char)0xa6;
 
 	strncpy(&trimmed[offset_start+3], &str[strlen(str) - offset_end], offset_end);
 	trimmed[length] = '\0';
@@ -115,7 +129,7 @@ print_vol_ctl(gpointer data, gpointer user_data)
 		wattron(ifc->menu_win, A_REVERSE);
 
 	getmaxyx(ifc->menu_win, max_y, max_x);
-	name_len =(ifc->max_name_len > max_x / 2 ) ? max_x / 5 * 2 : ifc->max_name_len;
+	name_len = (ifc->max_name_len > max_x / 2 ) ? max_x / 5 * 2 : ifc->max_name_len;
 
 	if (!ctl->hide_index)
 		wprintw(ifc->menu_win, "%2u ", ctl->index);
