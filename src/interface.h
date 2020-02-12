@@ -20,11 +20,13 @@
 #ifndef INTERFACE_H
 #define INTERFACE_H
 
+#ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 700
+#endif
 
 #include <glib.h>
 #include <pulse/pulseaudio.h>
-#include <ncurses.h>
+#include <curses.h>
 
 #define SELECTED_MAIN_CTL -1
 #define H_MSG_BOX 3

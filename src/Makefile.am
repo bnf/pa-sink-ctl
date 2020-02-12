@@ -2,7 +2,7 @@ bin_PROGRAMS = pa-sink-ctl
 pa_sink_ctl_SOURCES = interface.c command.c config.c pa-sink-ctl.c
 
 AM_CFLAGS = $(GCC_CFLAGS)
-AM_CPPFLAGS = $(PULSE_CFLAGS) $(PULSE_MAINLOOP_CFLAGS) $(GLIB_CFLAGS) \
+AM_CPPFLAGS = $(PULSE_CFLAGS) $(PULSE_MAINLOOP_CFLAGS) $(GLIB_CFLAGS) $(CURSES_CFLAGS) \
 	      -include $(top_builddir)/config.h
 pa_sink_ctl_LDADD = $(GLIB_LIBS) $(PULSE_LIBS) $(PULSE_MAINLOOP_LIBS) $(CURSES_LIBS)
 

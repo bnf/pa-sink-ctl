@@ -17,7 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 700
+#endif
 
 #include <unistd.h>
 #include <string.h>
@@ -27,7 +29,7 @@
 
 #include <glib.h>
 #include <pulse/pulseaudio.h>
-#include <ncurses.h>
+#include <curses.h>
 
 #include "interface.h"
 #include "ctl.h"
