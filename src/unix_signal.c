@@ -146,9 +146,9 @@ guint
 unix_signal_add_full(gint priority, gint signum, GSourceFunc function,
 		     gpointer data, GDestroyNotify notify)
 {
-	g_return_val_if_fail(function != NULL, 0);
-	GSource *source = unix_signal_source_new(signum);
 	guint id;
+	GSource *source = unix_signal_source_new(signum);
+	g_return_val_if_fail(function != NULL, 0);
 
 	if (priority != G_PRIORITY_DEFAULT)
 		g_source_set_priority (source, priority);
