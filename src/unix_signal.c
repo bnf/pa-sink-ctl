@@ -34,6 +34,16 @@ typedef struct _UnixSignalSource {
 	UnixSignalData *data;
 } UnixSignalSource;
 
+static void
+handler(gint signum);
+
+struct sigaction act_handler = {
+	.sa_handler = handler
+};
+struct sigaction act_null = {
+	.sa_handler = NULL
+};
+
 static inline UnixSignalData *
 unix_signal_data(guint index)
 {
@@ -47,7 +57,7 @@ handler(gint signum)
 	for (guint i = 0; i < signal_data->len; ++i)
 		if (unix_signal_data(i)->signum == signum)
 			unix_signal_data(i)->triggered = TRUE;
-	sigaction(signum, &(struct sigaction){handler}, NULL);
+	sigaction(signum, &act_handler, NULL);
 }
 
 static gboolean
@@ -89,7 +99,7 @@ finalize(GSource *source)
 {
 	UnixSignalSource *signal_source = (UnixSignalSource*) source;
 
-	sigaction(signal_source->data->signum, &(struct sigaction){NULL}, NULL);
+	sigaction(signal_source->data->signum, &act_null, NULL);
 	g_main_context_unref(signal_source->data->context);
 	g_ptr_array_remove_fast(signal_data, signal_source->data);
 	if (signal_data->len == 0)
@@ -127,7 +137,7 @@ unix_signal_source_new(gint signum)
 	GSource *source = g_source_new(&SourceFuncs, sizeof(UnixSignalSource));
 
 	unix_signal_source_init(source, signum);
-	sigaction(signum, &(struct sigaction){handler}, NULL);
+	sigaction(signum, &act_handler, NULL);
 
 	return source;
 }
