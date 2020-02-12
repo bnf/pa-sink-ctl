@@ -21,7 +21,6 @@
 #define INTERFACE_H
 
 #define _XOPEN_SOURCE 700
-#define NCURSES_WIDECHAR 1
 
 #include <glib.h>
 #include <pulse/pulseaudio.h>

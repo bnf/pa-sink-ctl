@@ -18,11 +18,11 @@
  */
 
 #define _XOPEN_SOURCE 700
-#define NCURSES_WIDECHAR 1
 
 #include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 
 #include <glib.h>
@@ -77,41 +77,43 @@ print_volume(struct interface *ifc, struct vol_ctl *ctl)
 		ctl->mute ? 'M':' ', ifc->volume_bar_len, vol, ifc->volume_bar);
 }
 
-static char *
-ellipsize(char *str, size_t length)
+static gchar *
+str_middle_truncate (const gchar *string, guint truncate_length)
 {
-	char *trimmed;
-	size_t offset_start, offset_end;
+	const gchar ellipsis[] = "…";
+	glong ellipsis_length;
+	glong length;
+	glong num_left_chars;
+	glong num_right_chars;
+	g_autofree gchar *left_substring = NULL;
+	g_autofree gchar *right_substring = NULL;
 
-	if (strlen(str) <= length) {
-		return g_strdup(str);
+	g_return_val_if_fail(string != NULL, NULL);
+	g_return_val_if_fail(truncate_length > 0, NULL);
+
+	ellipsis_length = g_utf8_strlen(ellipsis, -1);
+
+	/* Our ellipsis string + one character on each side. */
+	if (truncate_length < ellipsis_length + 2) {
+		return g_strdup(string);
 	}
 
-	/* TODO: currently required to normalize long size */
-	length = length + 2;
+	length = g_utf8_strlen(string, -1);
 
-	trimmed = g_new(char, length + 1);
+	if (length <= truncate_length) {
+		return g_strdup(string);
+	}
 
-	offset_start = length/2 - 2;
-	offset_end = length - offset_start - 3;
+	num_left_chars = (truncate_length - ellipsis_length) / 2;
+	num_right_chars = truncate_length - num_left_chars - ellipsis_length;
 
-	strncpy(trimmed, str, offset_start);
+	g_assert (num_left_chars > 0);
+	g_assert (num_right_chars > 0);
 
-	/*
-	trimmed[offset_start] = '.';
-	trimmed[offset_start+1] = '.';
-	trimmed[offset_start+2] = '.'; 
-	*/
+	left_substring = g_utf8_substring(string, 0, num_left_chars);
+	right_substring = g_utf8_substring(string, length - num_right_chars, length);
 
-	// Unicode '…' character
-	trimmed[offset_start] = (char)0xe2;
-	trimmed[offset_start+1] = (char)0x80;
-	trimmed[offset_start+2] = (char)0xa6;
-
-	strncpy(&trimmed[offset_start+3], &str[strlen(str) - offset_end], offset_end);
-	trimmed[length] = '\0';
-
-	return trimmed;
+	return g_strconcat(left_substring, ellipsis, right_substring, NULL);
 }
 
 static void
@@ -120,7 +122,8 @@ print_vol_ctl(gpointer data, gpointer user_data)
 	struct vol_ctl *ctl = data;
 	struct interface *ifc = user_data;
 	gint x, y;
-	size_t max_x, max_y, name_len;
+	guint i;
+	size_t max_x, max_y, max_name_len, name_len;
 	char *name;
 	(void) max_y;
 
@@ -129,15 +132,48 @@ print_vol_ctl(gpointer data, gpointer user_data)
 		wattron(ifc->menu_win, A_REVERSE);
 
 	getmaxyx(ifc->menu_win, max_y, max_x);
-	name_len = (ifc->max_name_len > max_x / 2 ) ? max_x / 5 * 2 : ifc->max_name_len;
+	max_name_len = (ifc->max_name_len > max_x / 5 * 2 ) ? max_x / 5 * 2 : ifc->max_name_len;
 
-	if (!ctl->hide_index)
+	if (!ctl->hide_index) {
 		wprintw(ifc->menu_win, "%2u ", ctl->index);
-	name = ellipsize(ctl->name, name_len);
-	wprintw(ifc->menu_win, "%*s%-*s",
-		ctl->indent + (ctl->hide_index ? 2+1 : 0), "",
-		name_len - ctl->indent, name);
-	g_free(name);
+	} else {
+		// Add padding instead of the (hidden) index
+		for (i = 0; i < (2+1); ++i) {
+			waddch(ifc->menu_win, ' ');
+		}
+	}
+	//name = ellipsize(ctl->name, name_len);
+	name = str_middle_truncate(ctl->name, max_name_len - ctl->indent);
+        if (name) {
+		for (i = 0; i < ctl->indent; ++i) {
+			waddch(ifc->menu_win, ' ');
+		}
+		name_len = g_utf8_strlen(name, -1);
+#if 0
+		wchar_t *wname = g_new(wchar_t, name_len + 1);
+		gint count = mbstowcs(wname, name, name_len + 1);
+		waddnwstr(ifc->menu_win, wname, count);
+		g_free(wname);
+#else
+		// Note: This is supoosed to be non portable
+		// Quote from https://stackoverflow.com/a/30835920/4223467
+		//   ncurses differs from X/Open curses by allowing multibyte characters
+		//   to be added via the waddstr (and waddch) interfaces. Actually this would
+		//   be the "ncursesw" library (the "ncurses" library does 8-bit encodings).
+		waddstr(ifc->menu_win, name);
+
+#endif
+
+		// Add padding
+		for (i = 0; i < max_name_len - name_len - ctl->indent; ++i) {
+			waddch(ifc->menu_win, ' ');
+		}
+
+		//wprintw(ifc->menu_win, "%-*s",
+		//	max_name_len - ctl->indent, name);
+
+                g_free(name);
+        }
 
 	if (ctl == ifc->current_ctl)
 		wattroff(ifc->menu_win, A_REVERSE);
@@ -155,7 +191,7 @@ max_name_len_helper(gpointer data, gpointer user_data)
 	struct interface *ifc = user_data;
 	guint len;
 
-	len = ctl->indent + strlen(ctl->name);
+	len = ctl->indent + g_utf8_strlen(ctl->name, -1);
 	if (len > ifc->max_name_len)
 		ifc->max_name_len = len;
 
