@@ -191,7 +191,7 @@ interface_set_status(struct interface *ifc, const gchar *msg, ...)
 	werase(ifc->msg_win);
 	box(ifc->msg_win, 0, 0);
 	if (ifc->status != NULL)
-		mvwprintw(ifc->msg_win, 1, 1, ifc->status);
+		mvwaddstr(ifc->msg_win, 1, 1, ifc->status);
 	wrefresh(ifc->msg_win);
 	refresh();
 }
