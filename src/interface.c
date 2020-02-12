@@ -24,7 +24,7 @@
 
 #include <glib.h>
 #include <pulse/pulseaudio.h>
-#include <ncurses.h>
+#include <curses.h>
 
 #include "interface.h"
 #include "ctl.h"

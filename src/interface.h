@@ -22,7 +22,7 @@
 
 #include <glib.h>
 #include <pulse/pulseaudio.h>
-#include <ncurses.h>
+#include <curses.h>
 
 #define SELECTED_MAIN_CTL -1
 #define H_MSG_BOX 3
