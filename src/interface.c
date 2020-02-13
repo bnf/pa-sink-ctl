@@ -401,7 +401,6 @@ interface_clear(struct interface *ifc)
 	delwin(ifc->menu_win);
 	delwin(ifc->msg_win);
 	endwin();
-	delscreen(NULL);
 	if (ifc->status)
 		g_free(ifc->status);
 }
