@@ -41,7 +41,7 @@
 #include <sys/signalfd.h>
 #include <signal.h>
 #else
-#include "unix_signal.h"
+#include <glib-unix.h>
 #endif
 
 static void
@@ -373,8 +373,8 @@ interface_init(struct interface *ifc)
 	}
 #else
 	/* register event handler for resize and input */
-	ifc->resize_source_id =	unix_signal_add(SIGWINCH,
-						interface_resize, ifc);
+	ifc->resize_source_id =	g_unix_signal_add(SIGWINCH,
+						  interface_resize, ifc);
 #endif
 	input_channel = g_io_channel_unix_new(STDIN_FILENO);
 	if (!input_channel)
