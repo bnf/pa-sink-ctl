@@ -28,12 +28,24 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
+AC_CHECK_HEADERS([ncurses.h sys/ioctl.h sys/signalfd.h unistd.h signal.h])
+
+AC_CHECK_FUNCS([signalfd])
+
+glib_version=2.0
+if test "x$ac_cv_func_signalfd" = "xno" -o "x$ac_cv_header_sys_signalfd_h" = "xno"; then
+	# If signalfd() is not available, we want to use g_unix_signal_add()
+	# which is supported for SIGWINCH as of 2.54, see
+	# https://github.com/GNOME/glib/commit/47a02c85610f4036681c9728b7339d
+	glib_version=2.54
+fi
+
 # Checks for libraries.
 AC_CHECK_LIB([ncurses], [newwin], [CURSES_LIBS=-lncurses], AC_MSG_ERROR([curses required]))
 
 PKG_CHECK_MODULES(PULSE, [libpulse], [], AC_MSG_ERROR([libpulse required]))
 PKG_CHECK_MODULES(PULSE_MAINLOOP, [libpulse-mainloop-glib], [], AC_MSG_ERROR([libpulse-mainloop-glib required]))
-PKG_CHECK_MODULES(GLIB, [glib-2.0], [], AC_MSG_ERROR([glib required]))
+PKG_CHECK_MODULES(GLIB, [glib-2.0 >= $glib_version], [], AC_MSG_ERROR([glib >= $glib_version required]))
 
 if test "x$GCC" = "xyes"; then
 	GCC_CFLAGS="-Wall -pedantic -std=c99 -W -Wextra -pipe -Wno-long-long -Winline -Wvla -Wno-overlength-strings -Wunsafe-loop-optimizations -Wundef -Wformat=2 -Wlogical-op -Wsign-compare -Wformat-security -Wmissing-include-dirs -Wformat-nonliteral -Wold-style-definition -Wpointer-arith -Winit-self -Wdeclaration-after-statement -Wfloat-equal -Wmissing-prototypes -Wstrict-prototypes -Wredundant-decls -Wmissing-declarations -Wmissing-noreturn -Wshadow -Wendif-labels -Wcast-align -Wstrict-aliasing=2 -Wwrite-strings -Wno-unused-parameter -ffast-math -Wp,-D_FORTIFY_SOURCE=2 -fno-common -fdiagnostics-show-option -fvisibility=hidden"
@@ -41,14 +53,6 @@ fi
 AC_SUBST(GCC_CFLAGS)
 
 AC_SUBST(CURSES_LIBS)
-
-AC_CHECK_HEADERS([ncurses.h sys/ioctl.h sys/signalfd.h unistd.h signal.h])
-
-AC_CHECK_FUNC([sigaction], [], AC_MSG_ERROR([function sigaction() not found]))
-AC_CHECK_FUNCS([signalfd])
-
-AM_CONDITIONAL([HAVE_SIGNALFD],
-	       [test "x$ac_cv_func_signalfd" = "xyes" -a "x$ac_cv_header_sys_signalfd_h" = "xyes"])
 
 AC_DEFINE([_POSIX_C_SOURCE], [1], [Enable POSIX.1-1990 definitions])
 
