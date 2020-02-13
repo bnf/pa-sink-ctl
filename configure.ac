@@ -44,16 +44,14 @@ if test "x$ac_cv_func_signalfd" = "xno" -o "x$ac_cv_header_sys_signalfd_h" = "xn
 fi
 
 # Checks for libraries.
-PKG_CHECK_MODULES(CURSES, [ncursesw], [], [ncursesw=no])
 PKG_CHECK_MODULES(PULSE, [libpulse], [], AC_MSG_ERROR([libpulse required]))
 PKG_CHECK_MODULES(PULSE_MAINLOOP, [libpulse-mainloop-glib], [], AC_MSG_ERROR([libpulse-mainloop-glib required]))
 PKG_CHECK_MODULES(GLIB, [glib-2.0 >= $glib_version], [], AC_MSG_ERROR([glib >= $glib_version required]))
-
-if test "x$ncursesw" = "xno"; then
+PKG_CHECK_MODULES(CURSES, [ncursesw], [],
 	AC_CHECK_LIB([curses], [newwin], [CURSES_LIBS=-lcurses], AC_MSG_ERROR([ncursesw or curses required]))
 	AC_CHECK_HEADERS([curses.h])
 	AC_SUBST(CURSES_LIBS)
-fi
+)
 
 if test "x$GCC" = "xyes"; then
 	GCC_CFLAGS="-Wall -pedantic -std=c99 -W -Wextra -pipe -Wno-long-long -Winline -Wvla -Wno-overlength-strings -Wunsafe-loop-optimizations -Wundef -Wformat=2 -Wlogical-op -Wsign-compare -Wformat-security -Wmissing-include-dirs -Wformat-nonliteral -Wold-style-definition -Wpointer-arith -Winit-self -Wdeclaration-after-statement -Wfloat-equal -Wmissing-prototypes -Wstrict-prototypes -Wredundant-decls -Wmissing-declarations -Wmissing-noreturn -Wshadow -Wendif-labels -Wcast-align -Wstrict-aliasing=2 -Wwrite-strings -Wno-unused-parameter -ffast-math -Wp,-D_FORTIFY_SOURCE=2 -fno-common -fdiagnostics-show-option -fvisibility=hidden"
