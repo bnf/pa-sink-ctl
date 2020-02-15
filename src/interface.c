@@ -73,6 +73,44 @@ print_volume(struct interface *ifc, struct vol_ctl *ctl)
 		ctl->mute ? 'M':' ', ifc->volume_bar_len, vol, ifc->volume_bar);
 }
 
+static gchar *
+ellipsize(const gchar *string, guint truncate_length)
+{
+	const gchar ellipsis[] = "…";
+	glong ellipsis_length;
+	glong length;
+	glong num_left_chars;
+	glong num_right_chars;
+	g_autofree gchar *left_substring = NULL;
+	g_autofree gchar *right_substring = NULL;
+
+	g_return_val_if_fail(string != NULL, NULL);
+	g_return_val_if_fail(truncate_length > 0, NULL);
+
+	ellipsis_length = g_utf8_strlen(ellipsis, -1);
+
+	/* Our ellipsis string + one character on each side. */
+	if (truncate_length < ellipsis_length + 2) {
+		return g_strdup(string);
+	}
+
+	length = g_utf8_strlen(string, -1);
+
+	if (length <= truncate_length) {
+		return g_strdup(string);
+	}
+
+	num_left_chars = (truncate_length - ellipsis_length) / 2;
+	num_right_chars = truncate_length - num_left_chars - ellipsis_length;
+
+	g_assert (num_left_chars > 0);
+	g_assert (num_right_chars > 0);
+
+	left_substring = g_utf8_substring(string, 0, num_left_chars);
+	right_substring = g_utf8_substring(string, length - num_right_chars, length);
+
+	return g_strconcat(left_substring, ellipsis, right_substring, NULL);
+}
 
 static void
 print_vol_ctl(gpointer data, gpointer user_data)
@@ -81,11 +119,16 @@ print_vol_ctl(gpointer data, gpointer user_data)
 	struct interface *ifc = user_data;
 	gint x, y;
 	guint i;
-	size_t name_len;
+	size_t max_x, max_y, max_name_len, name_len;
+	char *name;
+	(void) max_y;
 
 	getyx(ifc->menu_win, y, x);
 	if (ctl == ifc->current_ctl)
 		wattron(ifc->menu_win, A_REVERSE);
+
+	getmaxyx(ifc->menu_win, max_y, max_x);
+	max_name_len = (ifc->max_name_len > max_x / 5 * 2 ) ? max_x / 5 * 2 : ifc->max_name_len;
 
 	if (!ctl->hide_index) {
 		wprintw(ifc->menu_win, "%2u ", ctl->index);
@@ -95,39 +138,43 @@ print_vol_ctl(gpointer data, gpointer user_data)
 			waddch(ifc->menu_win, ' ');
 		}
 	}
-
-	for (i = 0; i < ctl->indent; ++i) {
-		waddch(ifc->menu_win, ' ');
-	}
-	name_len = g_utf8_strlen(ctl->name, -1);
+	name = ellipsize(ctl->name, max_name_len - ctl->indent);
+	if (name) {
+		for (i = 0; i < ctl->indent; ++i) {
+			waddch(ifc->menu_win, ' ');
+		}
+		name_len = g_utf8_strlen(name, -1);
 #if 1
-	// Note: This is supoosed to be non portable
-	// Quote from https://stackoverflow.com/a/30835920/4223467
-	//   ncurses differs from X/Open curses by allowing multibyte characters
-	//   to be added via the waddstr (and waddch) interfaces. Actually this would
-	//   be the "ncursesw" library (the "ncurses" library does 8-bit encodings).
-	waddstr(ifc->menu_win, ctl->name);
+		// Note: This is supoosed to be non portable
+		// Quote from https://stackoverflow.com/a/30835920/4223467
+		//   ncurses differs from X/Open curses by allowing multibyte characters
+		//   to be added via the waddstr (and waddch) interfaces. Actually this would
+		//   be the "ncursesw" library (the "ncurses" library does 8-bit encodings).
+		waddstr(ifc->menu_win, name);
 #else
-	{
-		wchar_t *wname = g_new(wchar_t, name_len + 1);
-		// requires #include <stdlib.h>
-		gint count = mbstowcs(wname, name, name_len + 1);
-		// Require _XOPEN_SOURCE 600 (according to `man 3x ncurses` 700 is recommended).
-		// configure.ac:
-		// AC_DEFINE([_XOPEN_SOURCE], [600], [Enable X/Open 6, incorporating POSIX 2004 definitions])
-		waddnwstr(ifc->menu_win, wname, count);
-		g_free(wname);
-	}
+		{
+			wchar_t *wname = g_new(wchar_t, name_len + 1);
+			// requires #include <stdlib.h>
+			gint count = mbstowcs(wname, name, name_len + 1);
+			// Require _XOPEN_SOURCE 600 (according to `man 3x ncurses` 700 is recommended).
+			// configure.ac:
+			// AC_DEFINE([_XOPEN_SOURCE], [600], [Enable X/Open 6, incorporating POSIX 2004 definitions])
+			waddnwstr(ifc->menu_win, wname, count);
+			g_free(wname);
+		}
 
 #endif
 
-	// Add padding
-	for (i = 0; i < ifc->max_name_len - name_len - ctl->indent; ++i) {
-		waddch(ifc->menu_win, ' ');
-	}
+		// Add padding
+		for (i = 0; i < max_name_len - name_len - ctl->indent; ++i) {
+			waddch(ifc->menu_win, ' ');
+		}
 
-	//wprintw(ifc->menu_win, "%-*s",
-	//	max_name_len - ctl->indent, name);
+		//wprintw(ifc->menu_win, "%-*s",
+		//	max_name_len - ctl->indent, name);
+
+                g_free(name);
+        }
 
 	if (ctl == ifc->current_ctl)
 		wattroff(ifc->menu_win, A_REVERSE);
