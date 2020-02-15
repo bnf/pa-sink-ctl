@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #AC_PREREQ([2.65])
-AC_INIT([pa-sink-ctl], [2], [benjaminfranzke@googlemail.com])
+AC_INIT([pa-sink-ctl], [3], [benjaminfranzke@googlemail.com])
 AM_INIT_AUTOMAKE([1.11 foreign dist-xz])
 AM_SILENT_RULES([yes])
 
